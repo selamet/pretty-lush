@@ -3,6 +3,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, Decoration, ViewPlugin, keymap } from "@codemirror/view";
 import { RangeSetBuilder, EditorSelection, Prec } from "@codemirror/state";
 import { HighlightStyle, syntaxHighlighting, StreamLanguage } from "@codemirror/language";
+import { getSearchQuery } from "@codemirror/search";
 import { tags as t } from "@lezer/highlight";
 import { getThemeMeta } from "./themes.js";
 import { python } from "@codemirror/lang-python";
@@ -71,6 +72,90 @@ const multiCursorKeymap = Prec.highest(
   keymap.of([
     { key: "Mod-g", run: selectAllOccurrences, preventDefault: true },
   ])
+);
+
+// Floating "X of Y" badge that appears when a search query is active.
+const matchCountPlugin = ViewPlugin.fromClass(
+  class {
+    constructor(view) {
+      this.view = view;
+      this.dom = document.createElement("div");
+      this.dom.className = "cm-match-count";
+      this.dom.style.display = "none";
+      view.dom.appendChild(this.dom);
+      this.compute();
+    }
+
+    update(update) {
+      if (
+        update.docChanged ||
+        update.selectionSet ||
+        update.transactions.length > 0
+      ) {
+        this.compute();
+      }
+    }
+
+    compute() {
+      const state = this.view.state;
+      let query;
+      try {
+        query = getSearchQuery(state);
+      } catch {
+        this.dom.style.display = "none";
+        return;
+      }
+
+      if (!query || !query.search) {
+        this.dom.style.display = "none";
+        return;
+      }
+
+      let total = 0;
+      let current = 0;
+      const main = state.selection.main;
+
+      try {
+        const cursor = query.getCursor(state.doc);
+        let item = cursor.next();
+        while (!item.done) {
+          total++;
+          if (
+            item.value.from === main.from &&
+            item.value.to === main.to
+          ) {
+            current = total;
+          }
+          item = cursor.next();
+          // safety stop for runaway regex
+          if (total > 100000) break;
+        }
+      } catch {
+        this.dom.style.display = "";
+        this.dom.textContent = "invalid pattern";
+        this.dom.dataset.state = "err";
+        return;
+      }
+
+      if (total === 0) {
+        this.dom.style.display = "";
+        this.dom.textContent = "no matches";
+        this.dom.dataset.state = "empty";
+        return;
+      }
+
+      this.dom.style.display = "";
+      this.dom.dataset.state = "ok";
+      this.dom.textContent =
+        current > 0
+          ? `${current} of ${total}`
+          : `${total} match${total === 1 ? "" : "es"}`;
+    }
+
+    destroy() {
+      this.dom.remove();
+    }
+  }
 );
 
 const lightHighlight = HighlightStyle.define([
@@ -264,7 +349,7 @@ export default function CodeEditor({
 
   const langExt = LANG_MAP[language];
 
-  const extensions = [multiCursorKeymap];
+  const extensions = [multiCursorKeymap, matchCountPlugin];
   if (externalExt) {
     extensions.push(externalExt);
     extensions.push(baseLayout);

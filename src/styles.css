@@ -1688,6 +1688,47 @@ button {
   outline: 1px solid var(--accent);
 }
 
+/* "X of Y" match count badge */
+.cm-match-count {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  z-index: 20;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--surface);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  user-select: none;
+  animation: count-fade-in 0.15s ease-out;
+}
+
+.cm-match-count[data-state="empty"] {
+  background: var(--warn);
+  color: #fff;
+}
+
+.cm-match-count[data-state="err"] {
+  background: var(--warn);
+  color: #fff;
+}
+
+@keyframes count-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ── snapshot mode (applied during PNG capture) ───────── */
 .editor-host.snapshot {
   position: relative;

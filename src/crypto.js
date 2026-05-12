@@ -40,7 +40,7 @@ async function deriveKeyFromPassword(password, salt) {
     },
     baseKey,
     { name: "AES-GCM", length: 256 },
-    false,
+    true,
     ["encrypt", "decrypt"]
   );
 }

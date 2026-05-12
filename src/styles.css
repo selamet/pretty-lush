@@ -129,6 +129,37 @@ button {
   flex-shrink: 0;
 }
 
+.oss-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 2px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  transition: background 0.12s, transform 0.12s;
+}
+
+.oss-pill:hover {
+  background: var(--primary-bg-hover);
+  transform: translateY(-1px);
+}
+
+.oss-pill svg {
+  flex-shrink: 0;
+}
+
+.oss-heart {
+  color: #ff5b6e;
+  font-size: 12px;
+  line-height: 1;
+}
+
 .top-actions {
   display: flex;
   align-items: center;
@@ -429,7 +460,7 @@ button {
 /* ── workspace ────────────────────────────────────────── */
 .workspace {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-w, 220px) 5px minmax(0, 1fr);
   min-height: 0;
   min-width: 0;
   overflow: hidden;
@@ -440,6 +471,45 @@ button {
   background: var(--surface);
   padding: 14px 10px;
   overflow-y: auto;
+  min-width: 0;
+}
+
+.resizer {
+  position: relative;
+  background: transparent;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+}
+
+/* default thin separator line */
+.resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--line);
+  transform: translateX(-0.5px);
+}
+
+/* hover/drag thicker accent overlay */
+.resizer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.resizer:hover::before,
+.resizer.is-dragging::before {
+  background: var(--accent);
+  opacity: 0.35;
 }
 
 .side-label {
@@ -558,7 +628,10 @@ button {
 /* ── editor ───────────────────────────────────────────── */
 .editor {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns:
+    minmax(0, var(--input-fr, 1fr))
+    5px
+    minmax(0, var(--output-fr, 1fr));
   min-height: 0;
   min-width: 0;
   overflow: hidden;
@@ -711,18 +784,18 @@ button {
   background: var(--surface);
 }
 
-.pane + .pane {
-  border-left: 1px solid var(--line);
-}
+/* the .resizer between .pane elements now draws the separator */
 
 .pane-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 8px 14px;
+  min-height: 42px;
   border-bottom: 1px solid var(--line);
   font-size: 12px;
   color: var(--muted);
+  box-sizing: border-box;
 }
 
 .pane-head .title {
@@ -1479,11 +1552,13 @@ button {
     display: none;
   }
 
-  .privacy-pill span {
+  .privacy-pill span,
+  .oss-pill span {
     display: none;
   }
 
-  .privacy-pill {
+  .privacy-pill,
+  .oss-pill {
     padding: 5px;
   }
 

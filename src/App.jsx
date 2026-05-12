@@ -148,6 +148,7 @@ const SAMPLES = {
 };
 
 const STORAGE_KEY = "pretty-lush:state:v1";
+const LAYOUT_KEY = "pretty-lush:layout:v1";
 const THEME_KEY = "pretty-lush:theme";
 const SETTINGS_KEY = "pretty-lush:settings:v1";
 const HISTORY_KEY = "pretty-lush:history:v1";
@@ -226,6 +227,34 @@ const _initialState = (() => {
   }
 })();
 
+const DEFAULT_LAYOUT = { sidebarW: 220, inputFr: 1 };
+const SIDEBAR_MIN = 160;
+const SIDEBAR_MAX = 480;
+const INPUT_FR_MIN = 0.2;
+const INPUT_FR_MAX = 5;
+
+const _initialLayout = (() => {
+  try {
+    const raw = localStorage.getItem(LAYOUT_KEY);
+    if (!raw) return DEFAULT_LAYOUT;
+    const parsed = JSON.parse(raw);
+    const sidebarW = Number(parsed?.sidebarW);
+    const inputFr = Number(parsed?.inputFr);
+    return {
+      sidebarW:
+        Number.isFinite(sidebarW)
+          ? Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, sidebarW))
+          : DEFAULT_LAYOUT.sidebarW,
+      inputFr:
+        Number.isFinite(inputFr) && inputFr > 0
+          ? Math.min(INPUT_FR_MAX, Math.max(INPUT_FR_MIN, inputFr))
+          : DEFAULT_LAYOUT.inputFr,
+    };
+  } catch {
+    return DEFAULT_LAYOUT;
+  }
+})();
+
 const _initialLang =
   _initialState?.lang && LANGUAGES.some((l) => l.id === _initialState.lang)
     ? _initialState.lang
@@ -260,6 +289,15 @@ export default function App() {
   const [shareError, setShareError] = useState(null);
   const [pwPrompt, setPwPrompt] = useState(null);
   const outputCaptureRef = useRef(null);
+  const [layout, setLayout] = useState(_initialLayout);
+  const workspaceRef = useRef(null);
+  const editorRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout));
+    } catch {}
+  }, [layout]);
 
   useEffect(() => {
     function onKey(e) {
@@ -791,6 +829,26 @@ export default function App() {
             </svg>
             <span>runs in your browser</span>
           </span>
+          <a
+            className="oss-pill"
+            href="https://github.com/selamet/pretty-lush"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="We love open source — star us on GitHub"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.52 2.87 8.35 6.84 9.7.5.1.68-.22.68-.49 0-.24-.01-.87-.01-1.71-2.79.62-3.38-1.37-3.38-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.23-.26-4.57-1.14-4.57-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.7 0 0 .84-.28 2.75 1.05A9.4 9.4 0 0 1 12 7.07c.85.004 1.71.12 2.51.34 1.91-1.33 2.75-1.05 2.75-1.05.55 1.4.2 2.44.1 2.7.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.58 5.06.36.32.68.94.68 1.89 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49C19.13 20.6 22 16.77 22 12.25 22 6.58 17.52 2 12 2z" />
+            </svg>
+            <span>
+              we <span className="oss-heart" aria-hidden="true">♥</span> open source
+            </span>
+          </a>
         </div>
         <div className="top-actions">
           <div className="view-toggle" role="tablist" aria-label="View mode">
@@ -943,7 +1001,13 @@ export default function App() {
         </div>
       )}
 
-      <div className="workspace">
+      <div
+        className="workspace"
+        ref={workspaceRef}
+        style={{
+          "--sidebar-w": `${layout.sidebarW}px`,
+        }}
+      >
         <aside className="sidebar">
           <div className="side-label">Languages</div>
           {LANGUAGES.map((l) => (
@@ -988,7 +1052,26 @@ export default function App() {
           )}
         </aside>
 
-        <section className={`editor ${viewMode === "diff" ? "is-diff" : ""}`}>
+        <Resizer
+          ariaLabel="Resize sidebar"
+          onDrag={(dx, startVal) => {
+            const next = Math.min(
+              SIDEBAR_MAX,
+              Math.max(SIDEBAR_MIN, startVal + dx)
+            );
+            setLayout((l) => (l.sidebarW === next ? l : { ...l, sidebarW: next }));
+          }}
+          startValue={layout.sidebarW}
+        />
+
+        <section
+          ref={editorRef}
+          className={`editor ${viewMode === "diff" ? "is-diff" : ""}`}
+          style={{
+            "--input-fr": layout.inputFr,
+            "--output-fr": 1,
+          }}
+        >
           {viewMode === "diff" ? (
             <div className="pane diff-pane">
               <div className="pane-head">
@@ -1037,6 +1120,38 @@ export default function App() {
               />
             </div>
           </div>
+
+          <Resizer
+            ariaLabel="Resize input pane"
+            onDrag={(dx, _startVal, ctx) => {
+              const editorEl = editorRef.current;
+              if (!editorEl) return;
+              const total = editorEl.getBoundingClientRect().width - 5; // minus handle
+              const startInputPx = ctx.startInputPx;
+              const nextInputPx = Math.min(
+                total - 80,
+                Math.max(80, startInputPx + dx)
+              );
+              const fr = nextInputPx / Math.max(1, total - nextInputPx);
+              const clamped = Math.min(
+                INPUT_FR_MAX,
+                Math.max(INPUT_FR_MIN, fr)
+              );
+              setLayout((l) =>
+                Math.abs(l.inputFr - clamped) < 0.001
+                  ? l
+                  : { ...l, inputFr: clamped }
+              );
+            }}
+            startContext={() => {
+              const editorEl = editorRef.current;
+              if (!editorEl) return { startInputPx: 0 };
+              const total = editorEl.getBoundingClientRect().width - 5;
+              return {
+                startInputPx: (layout.inputFr / (layout.inputFr + 1)) * total,
+              };
+            }}
+          />
 
           <div className="pane">
             <div className="pane-head">
@@ -1292,6 +1407,53 @@ function CopyButton({ text }) {
         </>
       )}
     </button>
+  );
+}
+
+function Resizer({ ariaLabel, onDrag, startValue, startContext }) {
+  const [dragging, setDragging] = useState(false);
+
+  function handlePointerDown(e) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startVal = startValue;
+    const ctx = startContext ? startContext() : null;
+    setDragging(true);
+    const prevCursor = document.body.style.cursor;
+    const prevSelect = document.body.style.userSelect;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    function onMove(ev) {
+      onDrag(ev.clientX - startX, startVal, ctx);
+    }
+    function onUp() {
+      setDragging(false);
+      document.body.style.cursor = prevCursor;
+      document.body.style.userSelect = prevSelect;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  function handleDoubleClick() {
+    // reset to default — caller controls semantics via startValue alone,
+    // so we emit a large negative delta only meaningful for sidebar; the
+    // editor resizer responds to its own ctx, so this is a soft reset.
+    onDrag(0, startValue, startContext ? startContext() : null);
+  }
+
+  return (
+    <div
+      className={`resizer ${dragging ? "is-dragging" : ""}`}
+      role="separator"
+      aria-orientation="vertical"
+      aria-label={ariaLabel}
+      onPointerDown={handlePointerDown}
+      onDoubleClick={handleDoubleClick}
+    />
   );
 }
 

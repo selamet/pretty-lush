@@ -15,6 +15,8 @@ Powered by real formatters compiled to WebAssembly:
 ## Highlights
 
 - 12 languages out of the box: Python · JSON · YAML · Shell · Dockerfile · JavaScript · TypeScript · HTML · CSS · Markdown · Dotenv · SQL
+- Installable PWA — works fully offline after first load (formatters are precached, including the Ruff WASM)
+- Export formatted output as a PNG card with window chrome + watermark
 - Side-by-side editor with syntax highlighting (CodeMirror 6)
 - Inline diff view between input and output
 - Auto-detect language from pasted content or dropped files

@@ -292,6 +292,8 @@ export default function App() {
   const [layout, setLayout] = useState(_initialLayout);
   const workspaceRef = useRef(null);
   const editorRef = useRef(null);
+  const [jsonPath, setJsonPath] = useState("");
+  const [jsonView, setJsonView] = useState("code"); // 'code' | 'table'
 
   useEffect(() => {
     try {
@@ -615,7 +617,10 @@ export default function App() {
     if (isFormatting) return;
     if (!silent) setIsFormatting(true);
     try {
-      const result = await formatCode(lang, input, settings);
+      const result = await formatCode(lang, input, {
+        ...settings,
+        jsonPath: lang === "json" ? jsonPath : null,
+      });
       setOutput(result);
       setError(null);
       if (!silent && input.length <= MAX_HISTORY_ITEM) {
@@ -664,6 +669,10 @@ export default function App() {
     setOutput("");
     setError(null);
     setSuggestion(null);
+    if (id !== "json") {
+      setJsonPath("");
+      setJsonView("code");
+    }
   }
 
   function handleKeyDown(e) {
@@ -1068,8 +1077,8 @@ export default function App() {
           ref={editorRef}
           className={`editor ${viewMode === "diff" ? "is-diff" : ""}`}
           style={{
-            "--input-fr": layout.inputFr,
-            "--output-fr": 1,
+            "--input-fr": `${layout.inputFr}fr`,
+            "--output-fr": "1fr",
           }}
         >
           {viewMode === "diff" ? (
@@ -1101,12 +1110,44 @@ export default function App() {
                 {stats.inLines} {stats.inLines === 1 ? "line" : "lines"}
               </span>
             </div>
+            {lang === "json" && (
+              <div className="json-bar">
+                <label className="json-bar-label" htmlFor="jsonpath-input">
+                  JSONPath
+                </label>
+                <input
+                  id="jsonpath-input"
+                  type="text"
+                  className="json-bar-input"
+                  spellCheck={false}
+                  autoComplete="off"
+                  value={jsonPath}
+                  onChange={(e) => setJsonPath(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleFormat();
+                    }
+                  }}
+                  placeholder="$.foo.bar  ·  $..name  ·  $.items[*].id"
+                />
+                {jsonPath && (
+                  <button
+                    type="button"
+                    className="json-bar-clear"
+                    onClick={() => setJsonPath("")}
+                    title="Clear path"
+                    aria-label="Clear JSONPath"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            )}
             <div
               className="editor-host"
               onPaste={() => {
                 if (settings.formatOnPaste) {
-                  // Wait one tick so the pasted content is in editor state
-                  // before we read `input` from the next render's closure.
                   setTimeout(() => handleFormat({ silent: true }), 0);
                 }
               }}

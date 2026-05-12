@@ -30,6 +30,7 @@ const EXT_TO_LANG = {
   markdown: "markdown",
   dockerfile: "dockerfile",
   env: "dotenv",
+  sql: "sql",
 };
 
 function detectLangFromContent(src) {
@@ -53,6 +54,12 @@ function detectLangFromContent(src) {
       return "json";
     } catch {}
   }
+  if (
+    /^\s*(select|insert\s+into|update|delete\s+from|create\s+(table|view|index|database|schema)|with\s+\w+\s+as|alter\s+table|drop\s+table|truncate\s+table)\b/i.test(
+      head
+    )
+  )
+    return "sql";
   if (/^(def|class|import|from)\s+\w/m.test(head) || /^\s+\w.*:\s*$/m.test(head))
     return "python";
   {
@@ -122,6 +129,7 @@ const LANGUAGES = [
   { id: "css", label: "CSS", ext: "css" },
   { id: "markdown", label: "Markdown", ext: "md" },
   { id: "dotenv", label: "Dotenv", ext: "env" },
+  { id: "sql", label: "SQL", ext: "sql" },
 ];
 
 const SAMPLES = {
@@ -136,6 +144,7 @@ const SAMPLES = {
   css: `body{margin:0;font-family:system-ui}.btn{background:#1f6f4a;color:#fff;padding:8px 12px;border-radius:6px}`,
   markdown: `# pretty-lush\n\nA formatter for **JSON**,YAML,Python and more.\n\n- fast\n- private\n-  in your browser`,
   dotenv: `# pretty-lush sample env\nNODE_ENV =production\nPORT= 3000\nDATABASE_URL="postgres://user:pass@localhost:5432/db"\n  API_KEY=  sk_live_abc123\nFEATURE_FLAG=true`,
+  sql: `select u.id, u.name, count(o.id) as order_count from users u left join orders o on o.user_id=u.id where u.active=true and u.created_at>='2024-01-01' group by u.id,u.name having count(o.id)>5 order by order_count desc limit 50;`,
 };
 
 const STORAGE_KEY = "pretty-lush:state:v1";

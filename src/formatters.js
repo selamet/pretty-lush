@@ -36,8 +36,37 @@ export async function formatCode(lang, src, opts = {}) {
       return formatPython(src, o);
     case "dotenv":
       return formatDotenv(src, o);
+    case "sql":
+      return formatSql(src, o);
     default:
       return src;
+  }
+}
+
+let _sqlFormatter = null;
+async function getSqlFormatter() {
+  if (_sqlFormatter) return _sqlFormatter;
+  const mod = await import("sql-formatter");
+  _sqlFormatter = mod;
+  return mod;
+}
+
+async function formatSql(src, opts) {
+  const { format } = await getSqlFormatter();
+  try {
+    return format(src, {
+      language: "sql",
+      tabWidth: opts.indent === "tab" ? 1 : Number(opts.indent) || 2,
+      useTabs: opts.indent === "tab",
+      keywordCase: "upper",
+      linesBetweenQueries: 2,
+    });
+  } catch (e) {
+    const m = /line (\d+)/i.exec(e.message || "");
+    throw new FormatError(e.message || "SQL parse error", {
+      line: m ? Number(m[1]) : null,
+      hint: "Check for unmatched parens or stray punctuation",
+    });
   }
 }
 

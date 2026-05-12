@@ -7,13 +7,14 @@ Powered by real formatters compiled to WebAssembly:
 - **Prettier** — JSON, YAML, Markdown, CSS, HTML, JavaScript, TypeScript
 - **Ruff** — Python (black-compatible)
 - **sh-syntax** — Shell / Bash
-- Built-in heuristic — Dockerfile
+- **sql-formatter** — SQL (Postgres/MySQL/SQLite/etc.)
+- Built-in heuristic — Dockerfile, Dotenv
 
 ---
 
 ## Highlights
 
-- 11 languages out of the box: Python · JSON · YAML · Shell · Dockerfile · JavaScript · TypeScript · HTML · CSS · Markdown · Dotenv
+- 12 languages out of the box: Python · JSON · YAML · Shell · Dockerfile · JavaScript · TypeScript · HTML · CSS · Markdown · Dotenv · SQL
 - Side-by-side editor with syntax highlighting (CodeMirror 6)
 - Inline diff view between input and output
 - Auto-detect language from pasted content or dropped files

@@ -12,6 +12,7 @@ import { markdown } from "@codemirror/lang-markdown";
 import { css } from "@codemirror/lang-css";
 import { html } from "@codemirror/lang-html";
 import { javascript } from "@codemirror/lang-javascript";
+import { sql } from "@codemirror/lang-sql";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
@@ -25,6 +26,7 @@ const LANG_MAP = {
   html: html(),
   javascript: javascript(),
   typescript: javascript({ typescript: true }),
+  sql: sql(),
   shell: StreamLanguage.define(shell),
   dockerfile: StreamLanguage.define(dockerFile),
   dotenv: StreamLanguage.define(properties),

@@ -277,7 +277,37 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const themeMeta = getThemeMeta(settings.editorTheme);
 
-  const [viewMode, setViewMode] = useState("split"); // "split" | "diff"
+  const [viewMode, setViewMode] = useState("split"); // "split" | "diff" | "compare"
+  const [compareA, setCompareA] = useState(() => {
+    try {
+      const raw = localStorage.getItem("pretty-lush:compare:v1");
+      if (!raw) return "";
+      return JSON.parse(raw)?.a || "";
+    } catch {
+      return "";
+    }
+  });
+  const [compareB, setCompareB] = useState(() => {
+    try {
+      const raw = localStorage.getItem("pretty-lush:compare:v1");
+      if (!raw) return "";
+      return JSON.parse(raw)?.b || "";
+    } catch {
+      return "";
+    }
+  });
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          "pretty-lush:compare:v1",
+          JSON.stringify({ a: compareA, b: compareB })
+        );
+      } catch {}
+    }, 400);
+    return () => clearTimeout(t);
+  }, [compareA, compareB]);
   const [isDragging, setIsDragging] = useState(false);
   const [suggestion, setSuggestion] = useState(null);
   const [dismissedSuggestion, setDismissedSuggestion] = useState("");
@@ -781,6 +811,12 @@ export default function App() {
             run: () => setViewMode(viewMode === "diff" ? "split" : "diff"),
           },
           {
+            id: "compare",
+            label: "Compare two snippets (A vs B)",
+            keywords: "diff",
+            run: () => setViewMode("compare"),
+          },
+          {
             id: "copy-output",
             label: "Copy output",
             keywords: "clipboard",
@@ -904,6 +940,14 @@ export default function App() {
               disabled={!output && !error}
             >
               Diff
+            </button>
+            <button
+              type="button"
+              className={viewMode === "compare" ? "on" : ""}
+              onClick={() => setViewMode("compare")}
+              title="Compare two snippets"
+            >
+              Compare
             </button>
           </div>
           <button
@@ -1102,7 +1146,13 @@ export default function App() {
 
         <section
           ref={editorRef}
-          className={`editor ${viewMode === "diff" ? "is-diff" : ""}`}
+          className={`editor ${
+            viewMode === "diff"
+              ? "is-diff"
+              : viewMode === "compare"
+                ? "is-compare"
+                : ""
+          }`}
           style={{
             "--input-fr": `${layout.inputFr}fr`,
             "--output-fr": "1fr",
@@ -1128,6 +1178,99 @@ export default function App() {
                 )}
               </div>
             </div>
+          ) : viewMode === "compare" ? (
+            <>
+              <div className="pane compare-a">
+                <div className="pane-head">
+                  <span className="title">A</span>
+                  <div className="pane-actions">
+                    <span className="meta">
+                      {compareA ? compareA.split("\n").length : 0} lines
+                    </span>
+                    <button
+                      type="button"
+                      className="copy-btn"
+                      onClick={() => setCompareA("")}
+                      disabled={!compareA}
+                      title="Clear A"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+                <div className="editor-host">
+                  <CodeEditor
+                    theme={settings.editorTheme}
+                    value={compareA}
+                    onChange={setCompareA}
+                    language={lang}
+                    placeholder={`Paste version A (${currentLang.label})…`}
+                  />
+                </div>
+              </div>
+              <div className="pane compare-b">
+                <div className="pane-head">
+                  <span className="title">B</span>
+                  <div className="pane-actions">
+                    <span className="meta">
+                      {compareB ? compareB.split("\n").length : 0} lines
+                    </span>
+                    <button
+                      type="button"
+                      className="copy-btn"
+                      onClick={() => setCompareB("")}
+                      disabled={!compareB}
+                      title="Clear B"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      type="button"
+                      className="copy-btn"
+                      onClick={() => {
+                        const a = compareA;
+                        setCompareA(compareB);
+                        setCompareB(a);
+                      }}
+                      disabled={!compareA && !compareB}
+                      title="Swap A and B"
+                    >
+                      Swap
+                    </button>
+                  </div>
+                </div>
+                <div className="editor-host">
+                  <CodeEditor
+                    theme={settings.editorTheme}
+                    value={compareB}
+                    onChange={setCompareB}
+                    language={lang}
+                    placeholder={`Paste version B (${currentLang.label})…`}
+                  />
+                </div>
+              </div>
+              <div className="pane compare-diff">
+                <div className="pane-head">
+                  <span className="title">Diff — A ↔ B</span>
+                  <span className="meta">
+                    {compareA === compareB
+                      ? compareA
+                        ? "identical"
+                        : "—"
+                      : "differs"}
+                  </span>
+                </div>
+                <div className="editor-host">
+                  {!compareA && !compareB ? (
+                    <div className="compare-empty">
+                      Paste two snippets above to see the diff.
+                    </div>
+                  ) : (
+                    <DiffView before={compareA} after={compareB} />
+                  )}
+                </div>
+              </div>
+            </>
           ) : (
             <>
           <div className="pane">

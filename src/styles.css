@@ -641,6 +641,39 @@ button {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.editor.is-compare {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
+}
+
+.editor.is-compare .compare-a {
+  grid-column: 1;
+  grid-row: 1;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.editor.is-compare .compare-b {
+  grid-column: 2;
+  grid-row: 1;
+  border-bottom: 1px solid var(--line);
+}
+
+.editor.is-compare .compare-diff {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.compare-empty {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 24px;
+}
+
 .view-toggle {
   display: inline-flex;
   border: 1px solid var(--line-strong);

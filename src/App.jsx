@@ -6,6 +6,25 @@ import CommandPalette from "./CommandPalette.jsx";
 import ShareDialog, { PasswordPrompt } from "./ShareDialog.jsx";
 import { encryptShare, decryptShare } from "./crypto.js";
 import { THEMES, getThemeMeta, flipTheme } from "./themes.js";
+import {
+  sortLines,
+  dedupeLines,
+  reverseLines,
+  trimEachLine,
+  collapseBlankLines,
+  toUpperCase,
+  toLowerCase,
+  toTitleCase,
+  base64Encode,
+  base64Decode,
+  urlEncode,
+  urlDecode,
+  hexEncode,
+  hexDecode,
+  decodeJwt,
+  timestampToIso,
+  isoToTimestamp,
+} from "./utils.js";
 
 const EXT_TO_LANG = {
   py: "python",
@@ -324,6 +343,38 @@ export default function App() {
   const editorRef = useRef(null);
   const [jsonPath, setJsonPath] = useState("");
   const [jsonView, setJsonView] = useState("code"); // 'code' | 'table'
+  const [jwtResult, setJwtResult] = useState(null);
+
+  function runTextUtil(label, fn) {
+    if (!input) {
+      setShareToast({ kind: "warn", message: "Input is empty" });
+      return;
+    }
+    try {
+      const result = fn(input);
+      setOutput(result);
+      setError(null);
+      setShareToast({ kind: "ok", message: `${label} applied` });
+    } catch (e) {
+      setError({ message: e.message, line: null, column: null, hint: null });
+      setOutput("");
+    }
+  }
+
+  function runJwtDecode() {
+    if (!input) {
+      setShareToast({ kind: "warn", message: "Paste a JWT first" });
+      return;
+    }
+    try {
+      const r = decodeJwt(input);
+      setJwtResult(r);
+      setError(null);
+    } catch (e) {
+      setError({ message: e.message, line: null, column: null, hint: null });
+      setOutput("");
+    }
+  }
 
   const jsonTableData = useMemo(() => {
     if (lang !== "json" || !output) return null;
@@ -846,6 +897,27 @@ export default function App() {
             group: "Theme",
             run: () => setSettings((s) => ({ ...s, editorTheme: t.id })),
           })),
+          // ── text utilities (apply to input → output) ─────
+          { id: "util-sort-asc", group: "Text", label: "Sort lines (A→Z)", keywords: "alphabetize", run: () => runTextUtil("Sort A→Z", (s) => sortLines(s, { reverse: false })) },
+          { id: "util-sort-desc", group: "Text", label: "Sort lines (Z→A)", keywords: "alphabetize reverse", run: () => runTextUtil("Sort Z→A", (s) => sortLines(s, { reverse: true })) },
+          { id: "util-dedupe", group: "Text", label: "Dedupe lines", keywords: "unique distinct", run: () => runTextUtil("Dedupe", dedupeLines) },
+          { id: "util-reverse", group: "Text", label: "Reverse line order", keywords: "flip", run: () => runTextUtil("Reverse", reverseLines) },
+          { id: "util-trim", group: "Text", label: "Trim trailing whitespace", keywords: "rtrim cleanup", run: () => runTextUtil("Trim", trimEachLine) },
+          { id: "util-collapse", group: "Text", label: "Collapse blank lines", keywords: "squeeze empty", run: () => runTextUtil("Collapse blanks", collapseBlankLines) },
+          { id: "util-upper", group: "Text", label: "UPPERCASE", keywords: "case", run: () => runTextUtil("Uppercase", toUpperCase) },
+          { id: "util-lower", group: "Text", label: "lowercase", keywords: "case", run: () => runTextUtil("Lowercase", toLowerCase) },
+          { id: "util-title", group: "Text", label: "Title Case", keywords: "case", run: () => runTextUtil("Title case", toTitleCase) },
+          // ── encoding ────────────────────────────────────
+          { id: "util-b64-enc", group: "Encode", label: "Base64 encode", keywords: "encode", run: () => runTextUtil("Base64 encode", base64Encode) },
+          { id: "util-b64-dec", group: "Encode", label: "Base64 decode", keywords: "decode", run: () => runTextUtil("Base64 decode", base64Decode) },
+          { id: "util-url-enc", group: "Encode", label: "URL encode (percent)", keywords: "uri escape", run: () => runTextUtil("URL encode", urlEncode) },
+          { id: "util-url-dec", group: "Encode", label: "URL decode (percent)", keywords: "uri unescape", run: () => runTextUtil("URL decode", urlDecode) },
+          { id: "util-hex-enc", group: "Encode", label: "String → hex", keywords: "encode", run: () => runTextUtil("Hex encode", hexEncode) },
+          { id: "util-hex-dec", group: "Encode", label: "Hex → string", keywords: "decode", run: () => runTextUtil("Hex decode", hexDecode) },
+          // ── special ─────────────────────────────────────
+          { id: "util-jwt", group: "Decode", label: "Decode JWT", keywords: "token jsonwebtoken", run: runJwtDecode },
+          { id: "util-ts-iso", group: "Decode", label: "Unix timestamp → ISO date", keywords: "epoch time", run: () => runTextUtil("Timestamp → ISO", timestampToIso) },
+          { id: "util-iso-ts", group: "Decode", label: "ISO date → Unix timestamp", keywords: "epoch time", run: () => runTextUtil("ISO → timestamp", isoToTimestamp) },
         ]}
       />
 
@@ -873,6 +945,7 @@ export default function App() {
         onSubmit={handlePwSubmit}
         onCancel={() => setPwPrompt(null)}
       />
+      <JwtModal result={jwtResult} onClose={() => setJwtResult(null)} />
       {isDragging && (
         <div className="drop-overlay">
           <div className="drop-overlay-card">
@@ -1644,6 +1717,131 @@ function CopyButton({ text }) {
         </>
       )}
     </button>
+  );
+}
+
+function JwtModal({ result, onClose }) {
+  useEffect(() => {
+    if (!result) return;
+    function onKey(e) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [result, onClose]);
+
+  if (!result) return null;
+
+  const { header, payload, signature, meta } = result;
+  const fmt = (d) =>
+    d ? `${d.toISOString()} (${d.toLocaleString()})` : "—";
+
+  async function copy(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {}
+  }
+
+  return (
+    <div className="dialog-overlay" onMouseDown={onClose}>
+      <div
+        className="dialog jwt-dialog"
+        onMouseDown={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-labelledby="jwt-title"
+      >
+        <div className="dialog-head">
+          <h2 id="jwt-title" className="dialog-title">
+            JWT decoded
+            {meta.expired === true && (
+              <span className="jwt-badge jwt-badge-warn">expired</span>
+            )}
+            {meta.expired === false && (
+              <span className="jwt-badge jwt-badge-ok">valid window</span>
+            )}
+          </h2>
+          <button
+            type="button"
+            className="dialog-close"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div className="dialog-body">
+          <JwtSection
+            label="Header"
+            value={JSON.stringify(header, null, 2)}
+            onCopy={() => copy(JSON.stringify(header, null, 2))}
+          />
+          <JwtSection
+            label="Payload"
+            value={JSON.stringify(payload, null, 2)}
+            onCopy={() => copy(JSON.stringify(payload, null, 2))}
+          />
+          <div className="jwt-meta">
+            <div>
+              <span className="jwt-meta-key">Issued</span>
+              <span>{fmt(meta.issuedAt)}</span>
+            </div>
+            <div>
+              <span className="jwt-meta-key">Not before</span>
+              <span>{fmt(meta.notBefore)}</span>
+            </div>
+            <div>
+              <span className="jwt-meta-key">Expires</span>
+              <span>{fmt(meta.expiresAt)}</span>
+            </div>
+            {meta.lifetimeSec != null && (
+              <div>
+                <span className="jwt-meta-key">Lifetime</span>
+                <span>
+                  {meta.lifetimeSec}s ({(meta.lifetimeSec / 60).toFixed(1)} min)
+                </span>
+              </div>
+            )}
+          </div>
+          <JwtSection
+            label="Signature"
+            value={signature}
+            mono
+            onCopy={() => copy(signature)}
+          />
+          <p className="dialog-hint">
+            Signature is not verified — pretty-lush has no key. Use a server
+            or your auth library to validate.
+          </p>
+        </div>
+        <div className="dialog-actions">
+          <button type="button" className="btn-primary" onClick={onClose}>
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function JwtSection({ label, value, mono, onCopy }) {
+  return (
+    <div className="jwt-section">
+      <div className="jwt-section-head">
+        <span className="jwt-section-label">{label}</span>
+        <button
+          type="button"
+          className="copy-btn"
+          onClick={onCopy}
+          aria-label={`Copy ${label}`}
+        >
+          Copy
+        </button>
+      </div>
+      <pre className={`jwt-section-body${mono ? " is-mono" : ""}`}>{value}</pre>
+    </div>
   );
 }
 

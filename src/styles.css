@@ -1438,6 +1438,108 @@ button {
   line-height: 1.45;
 }
 
+/* ── JWT modal ───────────────────────────────────────── */
+.jwt-dialog {
+  width: 560px;
+  max-width: 94vw;
+  max-height: 84vh;
+}
+
+.jwt-dialog .dialog-body {
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.jwt-dialog .dialog-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jwt-badge {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.jwt-badge-warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+  border: 1px solid var(--warn-border);
+}
+
+.jwt-badge-ok {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.jwt-section {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.jwt-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.jwt-section-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.jwt-section-body {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.jwt-section-body.is-mono {
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+.jwt-meta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.jwt-meta > div {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 12px;
+}
+
+.jwt-meta-key {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
 /* ── snapshot mode (applied during PNG capture) ───────── */
 .editor-host.snapshot {
   position: relative;

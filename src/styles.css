@@ -877,6 +877,25 @@ button {
   background: var(--surface);
 }
 
+.pane.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: var(--surface);
+  animation: pane-fullscreen-in 0.18s ease-out;
+}
+
+@keyframes pane-fullscreen-in {
+  from {
+    opacity: 0.6;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* the .resizer between .pane elements now draws the separator */
 
 .json-bar {

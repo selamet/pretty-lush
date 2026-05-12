@@ -344,6 +344,16 @@ export default function App() {
   const [jsonPath, setJsonPath] = useState("");
   const [jsonView, setJsonView] = useState("code"); // 'code' | 'table'
   const [jwtResult, setJwtResult] = useState(null);
+  const [outputFullscreen, setOutputFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (!outputFullscreen) return;
+    function onKey(e) {
+      if (e.key === "Escape") setOutputFullscreen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [outputFullscreen]);
 
   function runTextUtil(label, fn) {
     if (!input) {
@@ -866,6 +876,14 @@ export default function App() {
             label: "Compare two snippets (A vs B)",
             keywords: "diff",
             run: () => setViewMode("compare"),
+          },
+          {
+            id: "fullscreen",
+            label: outputFullscreen
+              ? "Exit fullscreen output"
+              : "Fullscreen output",
+            keywords: "zen focus expand",
+            run: () => setOutputFullscreen((v) => !v),
           },
           {
             id: "copy-output",
@@ -1443,7 +1461,7 @@ export default function App() {
             }}
           />
 
-          <div className="pane">
+          <div className={`pane ${outputFullscreen ? "is-fullscreen" : ""}`}>
             <div className="pane-head">
               <span className="title">Output</span>
               <div className="pane-actions">
@@ -1479,6 +1497,10 @@ export default function App() {
                 />
                 <CopyMarkdownButton text={output} lang={lang} />
                 <CopyButton text={output} />
+                <FullscreenButton
+                  active={outputFullscreen}
+                  onToggle={() => setOutputFullscreen((v) => !v)}
+                />
               </div>
             </div>
             <div className="editor-host" ref={outputCaptureRef}>
@@ -1992,6 +2014,35 @@ function CopyMarkdownButton({ text, lang }) {
           MD
         </>
       )}
+    </button>
+  );
+}
+
+function FullscreenButton({ active, onToggle }) {
+  return (
+    <button
+      type="button"
+      className="copy-btn"
+      onClick={onToggle}
+      aria-label={active ? "Exit fullscreen" : "Fullscreen output"}
+      title={active ? "Exit fullscreen (Esc)" : "Fullscreen output"}
+    >
+      {active ? (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="4 14 10 14 10 20" />
+          <polyline points="20 10 14 10 14 4" />
+          <line x1="14" y1="10" x2="21" y2="3" />
+          <line x1="3" y1="21" x2="10" y2="14" />
+        </svg>
+      ) : (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 3 21 3 21 9" />
+          <polyline points="9 21 3 21 3 15" />
+          <line x1="21" y1="3" x2="14" y2="10" />
+          <line x1="3" y1="21" x2="10" y2="14" />
+        </svg>
+      )}
+      {active ? "Exit" : ""}
     </button>
   );
 }

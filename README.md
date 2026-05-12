@@ -20,7 +20,7 @@ Powered by real formatters compiled to WebAssembly:
 - Drag-and-drop a file to load it (extension picks the language)
 - Download the formatted output with the right extension
 - Local format history (last 20, click to restore)
-- Shareable URL (state encoded in `#hash`, never sent to a server)
+- Two share modes: URL-only (state in `#hash`) or short encrypted link backed by Vercel KV with optional password and TTL — content is AES-GCM encrypted in the browser, the decryption key lives only in the URL fragment
 - Light + dark mode plus 8 popular editor themes (GitHub, Dracula, One Dark, Tokyo Night, Solarized)
 - ⌘K command palette — every action is a command
 - Configurable indent (2 / 4 / tab), line width, quote style
@@ -44,6 +44,8 @@ Initial JS bundle: ~300 KB gzipped. Heavy formatters (Ruff WASM ≈10 MB, sh-syn
 
 ---
 
+Live: **<https://pretty-lush.selamet.dev>**
+
 ## Getting started
 
 ```bash
@@ -61,6 +63,24 @@ npm run preview  # http://localhost:4173
 ```
 
 The output of `npm run build` is a fully static site in `dist/` — drop it on any static host (Vercel, Netlify, Cloudflare Pages, S3, GitHub Pages).
+
+### Optional: encrypted share backend
+
+The "encrypted link" share mode talks to two tiny serverless functions in `api/`. They use any Vercel KV–compatible Redis (Upstash REST). Two env vars enable it:
+
+```bash
+KV_REST_API_URL=...
+KV_REST_API_TOKEN=...
+```
+
+- **Vercel KV** — add the integration from the project dashboard, env vars are injected automatically.
+- **Upstash Redis** directly — free tier (10k commands/day, 256 MB) is enough for personal use. Copy the REST URL and token from the Upstash console into the two env vars above.
+
+Without these env vars:
+- **Local `npm run dev`** still works — the API falls back to an in-memory map for the dev session.
+- **Production** returns a clean `503` from `/api/paste`, and the share dialog automatically offers to switch to URL-only mode.
+
+The URL-only share (`#s=...`) needs no backend and is always available.
 
 ---
 
@@ -92,11 +112,16 @@ WASM URLs are resolved via Vite's `?url` import so they resolve correctly in bot
 ```
 pretty-lush/
 ├── public/                  # static assets (og.svg, robots, sitemap)
+├── api/                     # Vercel serverless functions
+│   ├── paste.js             # POST — store encrypted paste in Vercel KV
+│   └── paste/[id].js        # GET  — retrieve encrypted paste
 ├── src/
 │   ├── App.jsx              # main shell — state, topbar, sidebar, panes
 │   ├── CodeEditor.jsx       # CodeMirror wrapper + themes + error decorations
 │   ├── DiffView.jsx         # input ↔ output line diff
 │   ├── CommandPalette.jsx   # ⌘K palette
+│   ├── ShareDialog.jsx      # share modal + password prompt
+│   ├── crypto.js            # AES-GCM 256 + optional PBKDF2 password
 │   ├── formatters.js        # language → formatter dispatch (Prettier / Ruff / shfmt / heuristic)
 │   ├── themes.js            # editor theme registry + flipTheme helper
 │   └── styles.css           # all styling, light + dark + theme overrides
@@ -117,6 +142,8 @@ State is stored in `localStorage`:
 ## Privacy
 
 This is a static SPA. Source code you paste lives in your tab — it is never sent to any server controlled by this project, including for analytics. The privacy pill in the top bar (`🔒 runs in your browser`) is literal: every formatter is local.
+
+The optional **encrypted share link** is the only feature that talks to a backend. Even then the snippet is AES-GCM encrypted in the browser before upload and the decryption key never leaves the URL fragment (which browsers never send to servers). With a password, a second key is derived via PBKDF2 (250k iterations) and combined with the random key, so a leaked URL alone cannot decrypt.
 
 ---
 

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://pretty-lush.app/sitemap.xml
+Sitemap: https://pretty-lush.selamet.dev/sitemap.xml

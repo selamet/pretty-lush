@@ -3,6 +3,8 @@ import { formatCode } from "./formatters.js";
 import CodeEditor from "./CodeEditor.jsx";
 import DiffView from "./DiffView.jsx";
 import CommandPalette from "./CommandPalette.jsx";
+import ShareDialog, { PasswordPrompt } from "./ShareDialog.jsx";
+import { encryptShare, decryptShare } from "./crypto.js";
 import { THEMES, getThemeMeta, flipTheme } from "./themes.js";
 
 const EXT_TO_LANG = {
@@ -229,6 +231,10 @@ export default function App() {
   const [shareToast, setShareToast] = useState(null);
   const [history, setHistory] = useState(_initialHistory);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareError, setShareError] = useState(null);
+  const [pwPrompt, setPwPrompt] = useState(null);
 
   useEffect(() => {
     function onKey(e) {
@@ -250,39 +256,172 @@ export default function App() {
   // restore from URL share hash on mount (one-shot)
   useEffect(() => {
     const hash = window.location.hash;
-    if (!hash.startsWith("#s=")) return;
-    const decoded = decodeShare(hash.slice(3));
-    if (!decoded) return;
-    if (decoded.lang && LANGUAGES.some((l) => l.id === decoded.lang)) {
-      setLang(decoded.lang);
+    if (hash.startsWith("#s=")) {
+      const decoded = decodeShare(hash.slice(3));
+      if (!decoded) return;
+      if (decoded.lang && LANGUAGES.some((l) => l.id === decoded.lang)) {
+        setLang(decoded.lang);
+      }
+      if (typeof decoded.input === "string") {
+        setInputs((prev) => ({ ...prev, [decoded.lang || lang]: decoded.input }));
+      }
+      setOutput("");
+      setError(null);
+      window.history.replaceState(null, "", window.location.pathname);
+    } else if (hash.startsWith("#p=")) {
+      const rest = hash.slice(3);
+      const dot = rest.indexOf(".");
+      if (dot < 4) return;
+      const id = rest.slice(0, dot);
+      const urlKey = rest.slice(dot + 1);
+      if (!/^[A-Za-z0-9]{4,16}$/.test(id) || !urlKey) return;
+      window.history.replaceState(null, "", window.location.pathname);
+      loadServerPaste(id, urlKey);
     }
-    if (typeof decoded.input === "string") {
-      setInputs((prev) => ({ ...prev, [decoded.lang || lang]: decoded.input }));
-    }
-    setOutput("");
-    setError(null);
-    // clean URL so reload doesn't re-import
-    history.replaceState(null, "", window.location.pathname);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleShare() {
-    const payload = encodeShare({ lang, input });
-    const url = `${window.location.origin}${window.location.pathname}#s=${payload}`;
-    const sizeKB = (url.length / 1024).toFixed(1);
+  async function loadServerPaste(id, urlKey, password = null) {
     try {
-      await navigator.clipboard.writeText(url);
-      if (url.length > 8192) {
-        setShareToast({
-          kind: "warn",
-          message: `Link copied (${sizeKB} KB — some chat apps may reject it)`,
-        });
-      } else {
-        setShareToast({ kind: "ok", message: "Share link copied" });
+      const res = await fetch(`/api/paste/${encodeURIComponent(id)}`);
+      if (!res.ok) {
+        const msg =
+          res.status === 404
+            ? "This share link has expired or does not exist."
+            : `Could not load shared snippet (HTTP ${res.status}).`;
+        setShareToast({ kind: "err", message: msg });
+        return;
       }
-    } catch {
-      setShareToast({ kind: "err", message: "Could not copy link" });
+      const record = await res.json();
+
+      if (record.hasPassword && !password) {
+        setPwPrompt({ id, urlKey, record, busy: false, error: null });
+        return;
+      }
+
+      try {
+        const plaintext = await decryptShare({
+          ciphertext: record.ciphertext,
+          iv: record.iv,
+          salt: record.salt,
+          hasPassword: record.hasPassword,
+          urlKey,
+          password,
+        });
+        const targetLang =
+          record.lang && LANGUAGES.some((l) => l.id === record.lang)
+            ? record.lang
+            : lang;
+        setLang(targetLang);
+        setInputs((prev) => ({ ...prev, [targetLang]: plaintext }));
+        setOutput("");
+        setError(null);
+        setPwPrompt(null);
+        setShareToast({ kind: "ok", message: "Shared snippet loaded" });
+      } catch (e) {
+        if (record.hasPassword) {
+          setPwPrompt((p) => ({
+            ...(p || { id, urlKey, record }),
+            busy: false,
+            error: e.message || "Wrong password",
+          }));
+        } else {
+          setShareToast({ kind: "err", message: e.message || "Decryption failed" });
+        }
+      }
+    } catch (e) {
+      setShareToast({ kind: "err", message: "Network error loading snippet" });
     }
+  }
+
+  function openShareDialog() {
+    if (!input.trim()) return;
+    setShareError(null);
+    setShareDialogOpen(true);
+  }
+
+  async function copyToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function handleCreateShare({ mode, password, ttl }) {
+    setShareBusy(true);
+    setShareError(null);
+    try {
+      if (mode === "url") {
+        const payload = encodeShare({ lang, input });
+        const url = `${window.location.origin}${window.location.pathname}#s=${payload}`;
+        const sizeKB = (url.length / 1024).toFixed(1);
+        const ok = await copyToClipboard(url);
+        setShareDialogOpen(false);
+        if (!ok) {
+          setShareToast({ kind: "err", message: "Could not copy link" });
+        } else if (url.length > 8192) {
+          setShareToast({
+            kind: "warn",
+            message: `Link copied (${sizeKB} KB — some chat apps may reject it)`,
+          });
+        } else {
+          setShareToast({ kind: "ok", message: "Share link copied" });
+        }
+      } else {
+        const enc = await encryptShare(input, password);
+        const res = await fetch("/api/paste", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ciphertext: enc.ciphertext,
+            iv: enc.iv,
+            salt: enc.salt,
+            hasPassword: enc.hasPassword,
+            lang,
+            ttl,
+          }),
+        });
+        if (!res.ok) {
+          let msg = `Server rejected the snippet (HTTP ${res.status})`;
+          let code = null;
+          try {
+            const body = await res.json();
+            if (body?.error) msg = body.error;
+            if (body?.code) code = body.code;
+          } catch {}
+          setShareError({
+            message: msg,
+            code,
+            suggestUrl: res.status === 503 || code === "STORE_UNAVAILABLE",
+          });
+          return;
+        }
+        const { id } = await res.json();
+        const url = `${window.location.origin}${window.location.pathname}#p=${id}.${enc.urlKey}`;
+        const ok = await copyToClipboard(url);
+        setShareDialogOpen(false);
+        setShareToast({
+          kind: ok ? "ok" : "warn",
+          message: ok
+            ? password
+              ? "Encrypted link copied. Share the password separately."
+              : "Encrypted link copied"
+            : "Link created but clipboard write failed",
+        });
+      }
+    } catch (e) {
+      setShareError(e?.message || "Something went wrong");
+    } finally {
+      setShareBusy(false);
+    }
+  }
+
+  async function handlePwSubmit(password) {
+    if (!pwPrompt) return;
+    setPwPrompt((p) => ({ ...p, busy: true, error: null }));
+    await loadServerPaste(pwPrompt.id, pwPrompt.urlKey, password);
   }
 
   useEffect(() => {
@@ -523,8 +662,9 @@ export default function App() {
           },
           {
             id: "share",
-            label: "Copy share link",
-            run: handleShare,
+            label: "Share snippet…",
+            keywords: "link copy encrypted password",
+            run: openShareDialog,
           },
           {
             id: "clear",
@@ -578,6 +718,25 @@ export default function App() {
           {shareToast.message}
         </div>
       )}
+      <ShareDialog
+        open={shareDialogOpen}
+        onClose={() => {
+          if (!shareBusy) {
+            setShareDialogOpen(false);
+            setShareError(null);
+          }
+        }}
+        onCreate={handleCreateShare}
+        busy={shareBusy}
+        error={shareError}
+      />
+      <PasswordPrompt
+        open={!!pwPrompt}
+        busy={pwPrompt?.busy}
+        error={pwPrompt?.error}
+        onSubmit={handlePwSubmit}
+        onCancel={() => setPwPrompt(null)}
+      />
       {isDragging && (
         <div className="drop-overlay">
           <div className="drop-overlay-card">
@@ -630,9 +789,9 @@ export default function App() {
           <button
             type="button"
             className="icon-btn"
-            onClick={handleShare}
-            aria-label="Share link"
-            title="Copy share link"
+            onClick={openShareDialog}
+            aria-label="Share snippet"
+            title="Share snippet"
             disabled={!input.trim()}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

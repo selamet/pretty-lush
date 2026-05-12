@@ -129,35 +129,85 @@ button {
   flex-shrink: 0;
 }
 
-.oss-pill {
+.oss-chip {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  align-items: stretch;
+  height: 24px;
   margin-left: 2px;
-  padding: 3px 10px 3px 8px;
-  border-radius: 999px;
-  background: var(--ink);
-  color: var(--surface);
-  font-size: 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 11.5px;
   font-weight: 500;
   letter-spacing: -0.005em;
   text-decoration: none;
-  transition: background 0.12s, transform 0.12s;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
-.oss-pill:hover {
-  background: var(--primary-bg-hover);
-  transform: translateY(-1px);
+.oss-chip:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+  box-shadow: 0 1px 0 var(--line-strong);
 }
 
-.oss-pill svg {
+.oss-chip-mark {
+  margin: 0 6px 0 8px;
+  align-self: center;
   flex-shrink: 0;
+  color: var(--ink);
 }
 
-.oss-heart {
-  color: #ff5b6e;
-  font-size: 12px;
-  line-height: 1;
+.oss-chip-repo {
+  display: inline-flex;
+  align-items: center;
+  padding-right: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.oss-chip:hover .oss-chip-repo {
+  color: var(--ink);
+}
+
+.oss-chip-sep {
+  width: 1px;
+  background: var(--line);
+  margin: 4px 0;
+}
+
+.oss-chip-star {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 9px 0 8px;
+  background: var(--surface-2);
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.oss-chip:hover .oss-chip-star {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.oss-chip-star svg {
+  flex-shrink: 0;
+  transition: fill 0.15s, transform 0.2s;
+}
+
+.oss-chip:hover .oss-chip-star svg {
+  fill: var(--accent);
+  transform: rotate(10deg) scale(1.08);
+}
+
+.oss-chip-star-label {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .top-actions {
@@ -1719,14 +1769,31 @@ button {
     display: none;
   }
 
-  .privacy-pill span,
-  .oss-pill span {
+  .privacy-pill span {
     display: none;
   }
 
-  .privacy-pill,
-  .oss-pill {
+  .privacy-pill {
     padding: 5px;
+  }
+
+  .oss-chip-repo,
+  .oss-chip-star-label,
+  .oss-chip-sep {
+    display: none;
+  }
+
+  .oss-chip {
+    padding: 0 6px;
+  }
+
+  .oss-chip-mark {
+    margin: 0;
+  }
+
+  .oss-chip-star {
+    background: transparent;
+    padding: 0 0 0 6px;
   }
 
   .top-actions {

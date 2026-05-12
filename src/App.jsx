@@ -902,23 +902,29 @@ export default function App() {
             <span>runs in your browser</span>
           </span>
           <a
-            className="oss-pill"
+            className="oss-chip"
             href="https://github.com/selamet/pretty-lush"
             target="_blank"
             rel="noopener noreferrer"
-            title="We love open source — star us on GitHub"
+            title="Source on GitHub — give it a ★"
           >
             <svg
-              width="12"
-              height="12"
+              className="oss-chip-mark"
+              width="13"
+              height="13"
               viewBox="0 0 24 24"
               fill="currentColor"
               aria-hidden="true"
             >
               <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.52 2.87 8.35 6.84 9.7.5.1.68-.22.68-.49 0-.24-.01-.87-.01-1.71-2.79.62-3.38-1.37-3.38-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.23-.26-4.57-1.14-4.57-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.7 0 0 .84-.28 2.75 1.05A9.4 9.4 0 0 1 12 7.07c.85.004 1.71.12 2.51.34 1.91-1.33 2.75-1.05 2.75-1.05.55 1.4.2 2.44.1 2.7.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.58 5.06.36.32.68.94.68 1.89 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49C19.13 20.6 22 16.77 22 12.25 22 6.58 17.52 2 12 2z" />
             </svg>
-            <span>
-              we <span className="oss-heart" aria-hidden="true">♥</span> open source
+            <span className="oss-chip-repo">selamet/pretty-lush</span>
+            <span className="oss-chip-sep" aria-hidden="true" />
+            <span className="oss-chip-star" aria-hidden="true">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+              <span className="oss-chip-star-label">Star</span>
             </span>
           </a>
         </div>

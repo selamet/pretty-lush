@@ -252,7 +252,7 @@ export default function CodeEditor({
         highlightActiveLine: !readOnly,
         highlightActiveLineGutter: !readOnly,
         autocompletion: false,
-        searchKeymap: false,
+        searchKeymap: true,
         bracketMatching: true,
         closeBrackets: !readOnly,
         indentOnInput: !readOnly,

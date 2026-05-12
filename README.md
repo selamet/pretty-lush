@@ -106,7 +106,9 @@ WASM URLs are resolved via Vite's `?url` import so they resolve correctly in bot
 |---|---|
 | `⌘⏎` / `Ctrl+Enter` | Format |
 | `⌘K` / `Ctrl+K` | Open command palette |
-| `Esc` | Close palette / settings popover |
+| `⌘F` / `Ctrl+F` | Find in editor |
+| `⌘G` / `F3` | Find next |
+| `Esc` | Close palette / search / settings popover |
 
 ---
 

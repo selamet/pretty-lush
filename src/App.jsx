@@ -186,6 +186,7 @@ const DEFAULT_SETTINGS = {
   quotes: "double",
   editorTheme: "pretty-lush-light",
   autoFormat: false,
+  formatOnPaste: false,
 };
 
 const _initialSettings = (() => {
@@ -1017,7 +1018,16 @@ export default function App() {
                 {stats.inLines} {stats.inLines === 1 ? "line" : "lines"}
               </span>
             </div>
-            <div className="editor-host">
+            <div
+              className="editor-host"
+              onPaste={() => {
+                if (settings.formatOnPaste) {
+                  // Wait one tick so the pasted content is in editor state
+                  // before we read `input` from the next render's closure.
+                  setTimeout(() => handleFormat({ silent: true }), 0);
+                }
+              }}
+            >
               <CodeEditor theme={settings.editorTheme}
                 value={input}
                 onChange={setInput}
@@ -1179,6 +1189,21 @@ function SettingsPopover({ settings, onChange, onClose }) {
           className={`switch ${settings.autoFormat ? "on" : ""}`}
           onClick={() => set("autoFormat", !settings.autoFormat)}
           aria-pressed={settings.autoFormat}
+        >
+          <span className="knob" />
+        </button>
+      </div>
+
+      <div className="popover-row toggle">
+        <label>
+          Format on paste
+          <span className="hint">format immediately after pasting</span>
+        </label>
+        <button
+          type="button"
+          className={`switch ${settings.formatOnPaste ? "on" : ""}`}
+          onClick={() => set("formatOnPaste", !settings.formatOnPaste)}
+          aria-pressed={settings.formatOnPaste}
         >
           <span className="knob" />
         </button>

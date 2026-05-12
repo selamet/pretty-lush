@@ -34,9 +34,88 @@ export async function formatCode(lang, src, opts = {}) {
       return formatDockerfile(src, o);
     case "python":
       return formatPython(src, o);
+    case "dotenv":
+      return formatDotenv(src, o);
     default:
       return src;
   }
+}
+
+function formatDotenv(src) {
+  const lines = src.replace(/\r\n?/g, "\n").split("\n");
+  const out = [];
+  let prevBlank = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const trimmed = raw.trim();
+
+    if (!trimmed) {
+      // collapse runs of blank lines to one, never emit leading blanks
+      if (out.length > 0 && !prevBlank) out.push("");
+      prevBlank = true;
+      continue;
+    }
+
+    if (trimmed.startsWith("#")) {
+      out.push(trimmed);
+      prevBlank = false;
+      continue;
+    }
+
+    const m = trimmed.match(
+      /^(export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/
+    );
+    if (!m) {
+      // Unknown line — keep as-is (rtrim only) so we don't destroy user content
+      throw new FormatError(
+        `Line ${i + 1} is not a KEY=value assignment`,
+        { line: i + 1, hint: "dotenv lines must look like KEY=value or # comment" }
+      );
+    }
+
+    const exportPrefix = m[1] ? "export " : "";
+    const key = m[2];
+    let value = m[3];
+
+    // Strip a trailing inline comment that is OUTSIDE any quotes.
+    value = stripInlineComment(value);
+
+    // Trim surrounding whitespace from unquoted values; keep quoted values intact.
+    if (!isQuoted(value)) value = value.trim();
+
+    out.push(`${exportPrefix}${key}=${value}`);
+    prevBlank = false;
+  }
+
+  // strip trailing blank line if any
+  while (out.length && out[out.length - 1] === "") out.pop();
+
+  return out.join("\n") + "\n";
+}
+
+function isQuoted(v) {
+  return (
+    (v.startsWith('"') && v.endsWith('"') && v.length >= 2) ||
+    (v.startsWith("'") && v.endsWith("'") && v.length >= 2)
+  );
+}
+
+function stripInlineComment(value) {
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < value.length; i++) {
+    const c = value[i];
+    if (c === "'" && !inDouble) inSingle = !inSingle;
+    else if (c === '"' && !inSingle) inDouble = !inDouble;
+    else if (c === "#" && !inSingle && !inDouble) {
+      // require whitespace before # to avoid eating values like https://x#frag
+      if (i === 0 || /\s/.test(value[i - 1])) {
+        return value.slice(0, i).replace(/\s+$/, "");
+      }
+    }
+  }
+  return value;
 }
 
 let _prettierCore = null;

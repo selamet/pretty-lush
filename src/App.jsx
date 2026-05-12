@@ -29,6 +29,7 @@ const EXT_TO_LANG = {
   md: "markdown",
   markdown: "markdown",
   dockerfile: "dockerfile",
+  env: "dotenv",
 };
 
 function detectLangFromContent(src) {
@@ -54,6 +55,16 @@ function detectLangFromContent(src) {
   }
   if (/^(def|class|import|from)\s+\w/m.test(head) || /^\s+\w.*:\s*$/m.test(head))
     return "python";
+  {
+    const lines = head.split("\n").map((l) => l.trim()).filter(Boolean);
+    const meaningful = lines.filter((l) => !l.startsWith("#"));
+    if (meaningful.length >= 2) {
+      const envLike = meaningful.filter((l) =>
+        /^(export\s+)?[A-Z_][A-Z0-9_]*\s*=/i.test(l)
+      );
+      if (envLike.length === meaningful.length) return "dotenv";
+    }
+  }
   if (
     /^(interface|type)\s+\w/m.test(head) ||
     /:\s*(string|number|boolean|any)\b/.test(head)
@@ -93,6 +104,7 @@ function detectLangFromFilename(name) {
   if (!name) return null;
   const base = name.toLowerCase();
   if (base === "dockerfile" || base.endsWith(".dockerfile")) return "dockerfile";
+  if (base === ".env" || base.startsWith(".env.")) return "dotenv";
   const dot = base.lastIndexOf(".");
   if (dot < 0) return null;
   return EXT_TO_LANG[base.slice(dot + 1)] || null;
@@ -109,6 +121,7 @@ const LANGUAGES = [
   { id: "html", label: "HTML", ext: "html" },
   { id: "css", label: "CSS", ext: "css" },
   { id: "markdown", label: "Markdown", ext: "md" },
+  { id: "dotenv", label: "Dotenv", ext: "env" },
 ];
 
 const SAMPLES = {
@@ -122,6 +135,7 @@ const SAMPLES = {
   html: `<!doctype html><html><head><title>x</title></head><body><h1>hello</h1><p>world</p></body></html>`,
   css: `body{margin:0;font-family:system-ui}.btn{background:#1f6f4a;color:#fff;padding:8px 12px;border-radius:6px}`,
   markdown: `# pretty-lush\n\nA formatter for **JSON**,YAML,Python and more.\n\n- fast\n- private\n-  in your browser`,
+  dotenv: `# pretty-lush sample env\nNODE_ENV =production\nPORT= 3000\nDATABASE_URL="postgres://user:pass@localhost:5432/db"\n  API_KEY=  sk_live_abc123\nFEATURE_FLAG=true`,
 };
 
 const STORAGE_KEY = "pretty-lush:state:v1";

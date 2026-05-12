@@ -14,6 +14,7 @@ import { html } from "@codemirror/lang-html";
 import { javascript } from "@codemirror/lang-javascript";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
+import { properties } from "@codemirror/legacy-modes/mode/properties";
 
 const LANG_MAP = {
   python: python(),
@@ -26,6 +27,7 @@ const LANG_MAP = {
   typescript: javascript({ typescript: true }),
   shell: StreamLanguage.define(shell),
   dockerfile: StreamLanguage.define(dockerFile),
+  dotenv: StreamLanguage.define(properties),
 };
 
 const lightHighlight = HighlightStyle.define([

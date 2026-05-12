@@ -13,7 +13,7 @@ Powered by real formatters compiled to WebAssembly:
 
 ## Highlights
 
-- 10 languages out of the box: Python · JSON · YAML · Shell · Dockerfile · JavaScript · TypeScript · HTML · CSS · Markdown
+- 11 languages out of the box: Python · JSON · YAML · Shell · Dockerfile · JavaScript · TypeScript · HTML · CSS · Markdown · Dotenv
 - Side-by-side editor with syntax highlighting (CodeMirror 6)
 - Inline diff view between input and output
 - Auto-detect language from pasted content or dropped files

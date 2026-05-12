@@ -48,6 +48,9 @@ async function init() {
         expiresAt: ttlSec ? Date.now() + ttlSec * 1000 : null,
       });
     },
+    async del(key) {
+      map.delete(key);
+    },
   };
   backendKind = "memory";
 }

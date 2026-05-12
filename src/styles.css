@@ -1115,6 +1115,39 @@ button {
   line-height: 1.45;
 }
 
+.burn-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0 2px;
+  cursor: pointer;
+}
+
+.burn-toggle input[type="checkbox"] {
+  margin: 3px 0 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.burn-toggle > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.burn-toggle-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.burn-toggle-hint {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 /* ── snapshot mode (applied during PNG capture) ───────── */
 .editor-host.snapshot {
   position: relative;

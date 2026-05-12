@@ -16,6 +16,7 @@ export default function ShareDialog({ open, onClose, onCreate, busy, error }) {
   const [password, setPassword] = useState("");
   const [ttl, setTtl] = useState(DEFAULT_TTL);
   const [secret, setSecret] = useState(false);
+  const [burn, setBurn] = useState(false);
   const firstFieldRef = useRef(null);
 
   useEffect(() => {
@@ -24,16 +25,16 @@ export default function ShareDialog({ open, onClose, onCreate, busy, error }) {
       setMode("server");
       setTtl(DEFAULT_TTL);
       setSecret(false);
+      setBurn(false);
       setTimeout(() => firstFieldRef.current?.focus(), 0);
     }
   }, [open]);
 
   function toggleSecret(next) {
     setSecret(next);
-    // Snap TTL to a sensible default when the toggle flips, but leave
-    // alone if the user has already picked something stricter / looser.
     if (next && ttl > SECRET_TTL) setTtl(SECRET_TTL);
     if (!next && ttl < DEFAULT_TTL) setTtl(DEFAULT_TTL);
+    if (!next) setBurn(false);
   }
 
   if (!open) return null;
@@ -50,7 +51,12 @@ export default function ShareDialog({ open, onClose, onCreate, busy, error }) {
 
   function submit() {
     if (busy) return;
-    onCreate({ mode, password: password || null, ttl });
+    onCreate({
+      mode,
+      password: password || null,
+      ttl,
+      burnAfterRead: mode === "server" && secret && burn,
+    });
   }
 
   return createPortal(
@@ -180,6 +186,26 @@ export default function ShareDialog({ open, onClose, onCreate, busy, error }) {
                   ))}
                 </select>
               </div>
+
+              {secret && (
+                <label className="burn-toggle">
+                  <input
+                    type="checkbox"
+                    checked={burn}
+                    onChange={(e) => setBurn(e.target.checked)}
+                  />
+                  <span>
+                    <span className="burn-toggle-title">
+                      Self-destruct on read
+                    </span>
+                    <span className="burn-toggle-hint">
+                      Snippet is deleted from the server the moment it is
+                      decrypted. Anyone who opens the link after the first
+                      viewer will see an expired page.
+                    </span>
+                  </span>
+                </label>
+              )}
             </>
           )}
 

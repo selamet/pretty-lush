@@ -31,7 +31,8 @@ export default async function handler(req, res) {
     });
   }
 
-  const { ciphertext, iv, salt, hasPassword, lang, ttl } = req.body || {};
+  const { ciphertext, iv, salt, hasPassword, lang, ttl, burnAfterRead } =
+    req.body || {};
 
   if (typeof ciphertext !== "string" || !ciphertext)
     return res.status(400).json({ error: "ciphertext required" });
@@ -60,6 +61,7 @@ export default async function handler(req, res) {
     iv,
     salt: salt || null,
     hasPassword: !!hasPassword,
+    burnAfterRead: !!burnAfterRead,
     lang,
     createdAt: Date.now(),
   };

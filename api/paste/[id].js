@@ -20,8 +20,19 @@ export default async function handler(req, res) {
     });
   }
 
-  const record = await store.get(`p:${id}`);
+  const key = `p:${id}`;
+  const record = await store.get(key);
   if (!record) return res.status(404).json({ error: "not found or expired" });
+
+  if (record.burnAfterRead) {
+    // Fire-and-forget delete. We still return the record so the requester
+    // can decrypt; the next reader will see a 404.
+    try {
+      await store.del(key);
+    } catch {
+      // ignore — the TTL will sweep it up eventually
+    }
+  }
 
   res.setHeader("Cache-Control", "no-store");
   return res.status(200).json(record);

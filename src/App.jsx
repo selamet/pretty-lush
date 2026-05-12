@@ -373,7 +373,7 @@ export default function App() {
     }
   }
 
-  async function handleCreateShare({ mode, password, ttl }) {
+  async function handleCreateShare({ mode, password, ttl, burnAfterRead }) {
     setShareBusy(true);
     setShareError(null);
     try {
@@ -405,6 +405,7 @@ export default function App() {
             hasPassword: enc.hasPassword,
             lang,
             ttl,
+            burnAfterRead: !!burnAfterRead,
           }),
         });
         if (!res.ok) {

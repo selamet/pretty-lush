@@ -43,16 +43,25 @@ export async function formatCode(lang, src, opts = {}) {
   }
 }
 
-function formatJson(src, opts) {
-  // Prettier's "json" parser keeps short objects/arrays on a single line.
-  // Most users expect canonical multi-line JSON, so parse + re-stringify with
-  // the requested indent. Fall back to Prettier for JSON5-ish inputs.
+async function formatJson(src, opts) {
   const indent =
     opts.indent === "tab" ? "\t" : Math.max(1, Number(opts.indent) || 2);
   try {
-    const parsed = JSON.parse(src);
+    let parsed = JSON.parse(src);
+    if (opts.jsonPath && opts.jsonPath.trim()) {
+      const { JSONPath } = await import("jsonpath-plus");
+      try {
+        const result = JSONPath({ path: opts.jsonPath.trim(), json: parsed });
+        parsed = result;
+      } catch (qe) {
+        throw new FormatError(`Invalid JSONPath: ${qe.message || qe}`, {
+          hint: "Examples: $.foo, $..name, $.items[*].id",
+        });
+      }
+    }
     return JSON.stringify(parsed, null, indent) + "\n";
   } catch (e) {
+    if (e instanceof FormatError) throw e;
     const m = /position\s+(\d+)/i.exec(e.message || "");
     if (m) {
       const pos = Number(m[1]);

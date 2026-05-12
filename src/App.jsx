@@ -134,7 +134,7 @@ const LANGUAGES = [
 
 const SAMPLES = {
   python: `def greet(name,age=18):\n    return f"hi {name}, {age}"\nprint( greet("ada") )`,
-  json: `{"name":"pretty-lush","langs":["py","json","yaml","sh"],"version":1}`,
+  json: `[{"id":1,"name":"ada","role":"engineer","active":true},{"id":2,"name":"linus","role":"engineer","active":false},{"id":3,"name":"grace","role":"admiral","active":true}]`,
   yaml: `name: pretty-lush\nlangs:\n - py\n - json\nactive: true`,
   shell: `#!/usr/bin/env bash\nset -e\nfor f in *.py;do\necho "$f"\ndone`,
   dockerfile: `FROM python:3.11-slim\nWORKDIR  /app\nCOPY . .\nRUN pip install -r requirements.txt\nCMD ["python","app.py"]`,
@@ -294,6 +294,33 @@ export default function App() {
   const editorRef = useRef(null);
   const [jsonPath, setJsonPath] = useState("");
   const [jsonView, setJsonView] = useState("code"); // 'code' | 'table'
+
+  const jsonTableData = useMemo(() => {
+    if (lang !== "json" || !output) return null;
+    try {
+      const parsed = JSON.parse(output);
+      if (!Array.isArray(parsed) || parsed.length === 0) return null;
+      if (!parsed.every((row) => row && typeof row === "object" && !Array.isArray(row)))
+        return null;
+      const keys = [];
+      const seen = new Set();
+      for (const row of parsed) {
+        for (const k of Object.keys(row)) {
+          if (!seen.has(k)) {
+            seen.add(k);
+            keys.push(k);
+          }
+        }
+      }
+      return { rows: parsed, keys };
+    } catch {
+      return null;
+    }
+  }, [lang, output]);
+
+  useEffect(() => {
+    if (!jsonTableData && jsonView === "table") setJsonView("code");
+  }, [jsonTableData, jsonView]);
 
   useEffect(() => {
     try {
@@ -1201,6 +1228,24 @@ export default function App() {
                 <span className="meta">
                   {output ? `${stats.outLines} lines` : "—"}
                 </span>
+                {jsonTableData && (
+                  <div className="view-toggle small" role="tablist" aria-label="Output view">
+                    <button
+                      type="button"
+                      className={jsonView === "code" ? "on" : ""}
+                      onClick={() => setJsonView("code")}
+                    >
+                      Code
+                    </button>
+                    <button
+                      type="button"
+                      className={jsonView === "table" ? "on" : ""}
+                      onClick={() => setJsonView("table")}
+                    >
+                      Table
+                    </button>
+                  </div>
+                )}
                 <ImageButton
                   targetRef={outputCaptureRef}
                   language={currentLang.label}
@@ -1217,6 +1262,8 @@ export default function App() {
             <div className="editor-host" ref={outputCaptureRef}>
               {error ? (
                 <ErrorCard error={error} language={currentLang.label} />
+              ) : jsonTableData && jsonView === "table" ? (
+                <JsonTable rows={jsonTableData.rows} keys={jsonTableData.keys} />
               ) : (
                 <CodeEditor theme={settings.editorTheme}
                   value={output}
@@ -1448,6 +1495,44 @@ function CopyButton({ text }) {
         </>
       )}
     </button>
+  );
+}
+
+function JsonTable({ rows, keys }) {
+  function renderCell(v) {
+    if (v === null || v === undefined)
+      return <span className="v-null">null</span>;
+    if (typeof v === "boolean")
+      return <span className="v-bool">{String(v)}</span>;
+    if (typeof v === "number")
+      return <span className="v-num">{String(v)}</span>;
+    if (typeof v === "string") return <span className="v-str">{v}</span>;
+    return <span>{JSON.stringify(v)}</span>;
+  }
+
+  return (
+    <div className="json-table-host">
+      <table className="json-table">
+        <thead>
+          <tr>
+            {keys.map((k) => (
+              <th key={k}>{k}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i}>
+              {keys.map((k) => (
+                <td key={k} title={typeof row[k] === "object" ? JSON.stringify(row[k]) : String(row[k] ?? "")}>
+                  {renderCell(row[k])}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

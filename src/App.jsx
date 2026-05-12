@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatCode } from "./formatters.js";
 import CodeEditor from "./CodeEditor.jsx";
 import DiffView from "./DiffView.jsx";
@@ -258,6 +258,7 @@ export default function App() {
   const [shareBusy, setShareBusy] = useState(false);
   const [shareError, setShareError] = useState(null);
   const [pwPrompt, setPwPrompt] = useState(null);
+  const outputCaptureRef = useRef(null);
 
   useEffect(() => {
     function onKey(e) {
@@ -1033,6 +1034,11 @@ export default function App() {
                 <span className="meta">
                   {output ? `${stats.outLines} lines` : "—"}
                 </span>
+                <ImageButton
+                  targetRef={outputCaptureRef}
+                  language={currentLang.label}
+                  disabled={!output || !!error}
+                />
                 <DownloadButton
                   text={output}
                   filename={`formatted${currentLang.ext ? `.${currentLang.ext}` : ""}`}
@@ -1040,7 +1046,7 @@ export default function App() {
                 <CopyButton text={output} />
               </div>
             </div>
-            <div className="editor-host">
+            <div className="editor-host" ref={outputCaptureRef}>
               {error ? (
                 <ErrorCard error={error} language={currentLang.label} />
               ) : (
@@ -1258,6 +1264,57 @@ function CopyButton({ text }) {
           Copy
         </>
       )}
+    </button>
+  );
+}
+
+function ImageButton({ targetRef, language, disabled }) {
+  const [busy, setBusy] = useState(false);
+
+  async function handleSave() {
+    if (!targetRef?.current || disabled || busy) return;
+    setBusy(true);
+    const node = targetRef.current;
+    node.classList.add("snapshot");
+    try {
+      const { toPng } = await import("html-to-image");
+      const dataUrl = await toPng(node, {
+        pixelRatio: 2,
+        cacheBust: true,
+        backgroundColor:
+          getComputedStyle(document.documentElement)
+            .getPropertyValue("--surface")
+            .trim() || "#ffffff",
+      });
+      const a = document.createElement("a");
+      a.download = `pretty-lush-${language.toLowerCase()}.png`;
+      a.href = dataUrl;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch {
+      // swallow — fail silently is acceptable for an optional export
+    } finally {
+      node.classList.remove("snapshot");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      className="copy-btn"
+      onClick={handleSave}
+      disabled={disabled || busy}
+      aria-label="Download as image"
+      title="Download as PNG"
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+        <polyline points="21 15 16 10 5 21" />
+      </svg>
+      {busy ? "…" : "PNG"}
     </button>
   );
 }

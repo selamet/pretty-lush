@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbfbf9" />
+      <stop offset="100%" stop-color="#f3efe5" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)" />
+
+  <g transform="translate(96 92)">
+    <rect width="56" height="56" rx="14" fill="#1f6f4a" />
+    <text x="28" y="38" text-anchor="middle" fill="#ffffff" font-family="ui-monospace,Menlo,monospace" font-weight="600" font-size="22">pl</text>
+  </g>
+
+  <text x="96" y="276" font-family="Geist,system-ui,sans-serif" font-weight="600" font-size="84" fill="#16181a" letter-spacing="-2.4">
+    pretty-lush
+  </text>
+
+  <text x="96" y="332" font-family="Geist,system-ui,sans-serif" font-weight="500" font-size="28" fill="#3c3f43" letter-spacing="-0.4">
+    Format Python, JSON, YAML, Shell and Dockerfile —
+  </text>
+  <text x="96" y="372" font-family="Geist,system-ui,sans-serif" font-weight="500" font-size="28" fill="#3c3f43" letter-spacing="-0.4">
+    entirely in your browser.
+  </text>
+
+  <g transform="translate(96 460)" font-family="Geist Mono,ui-monospace,Menlo,monospace" font-size="20" fill="#8a8d92">
+    <rect x="-2" y="-26" width="144" height="38" rx="8" fill="#e6f0ea" stroke="#cfdfd6" stroke-width="1" />
+    <text x="70" y="0" text-anchor="middle" fill="#1f6f4a" font-weight="500">prettier</text>
+
+    <rect x="156" y="-26" width="100" height="38" rx="8" fill="#e6f0ea" stroke="#cfdfd6" stroke-width="1" />
+    <text x="206" y="0" text-anchor="middle" fill="#1f6f4a" font-weight="500">ruff</text>
+
+    <rect x="272" y="-26" width="116" height="38" rx="8" fill="#e6f0ea" stroke="#cfdfd6" stroke-width="1" />
+    <text x="330" y="0" text-anchor="middle" fill="#1f6f4a" font-weight="500">shfmt</text>
+
+    <text x="408" y="0" fill="#8a8d92">·  runs locally, nothing uploaded</text>
+  </g>
+</svg>

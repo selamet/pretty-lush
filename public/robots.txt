@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pretty-lush.app/sitemap.xml

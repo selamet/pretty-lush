@@ -15,7 +15,7 @@ export async function formatCode(lang, src, opts = {}) {
   const o = { ...DEFAULTS, ...opts };
   switch (lang) {
     case "json":
-      return formatWithPrettier(src, "json", o);
+      return formatJson(src, o);
     case "yaml":
       return formatWithPrettier(src, "yaml", o);
     case "markdown":
@@ -40,6 +40,32 @@ export async function formatCode(lang, src, opts = {}) {
       return formatSql(src, o);
     default:
       return src;
+  }
+}
+
+function formatJson(src, opts) {
+  // Prettier's "json" parser keeps short objects/arrays on a single line.
+  // Most users expect canonical multi-line JSON, so parse + re-stringify with
+  // the requested indent. Fall back to Prettier for JSON5-ish inputs.
+  const indent =
+    opts.indent === "tab" ? "\t" : Math.max(1, Number(opts.indent) || 2);
+  try {
+    const parsed = JSON.parse(src);
+    return JSON.stringify(parsed, null, indent) + "\n";
+  } catch (e) {
+    const m = /position\s+(\d+)/i.exec(e.message || "");
+    if (m) {
+      const pos = Number(m[1]);
+      const line = (src.slice(0, pos).match(/\n/g) || []).length + 1;
+      const lastNl = src.lastIndexOf("\n", pos - 1);
+      const column = pos - (lastNl + 1) + 1;
+      throw new FormatError(e.message, {
+        line,
+        column,
+        hint: "Check for trailing commas, single quotes, or missing brackets",
+      });
+    }
+    throw new FormatError(e.message || "Invalid JSON");
   }
 }
 

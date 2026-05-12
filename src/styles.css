@@ -1559,6 +1559,135 @@ button {
   color: var(--muted);
 }
 
+/* ── CodeMirror search panel (modernized) ────────────── */
+.cm-panels {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.cm-panels.cm-panels-bottom {
+  border-top: 1px solid var(--line) !important;
+  background: var(--surface-2) !important;
+}
+
+.cm-panel.cm-search {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px !important;
+  background: var(--surface-2) !important;
+  color: var(--ink) !important;
+  font-family: var(--sans);
+}
+
+.cm-panel.cm-search br {
+  display: none;
+}
+
+.cm-search input.cm-textfield {
+  appearance: none;
+  height: 28px;
+  min-width: 200px;
+  padding: 0 10px !important;
+  margin: 0 !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 6px !important;
+  background: var(--surface) !important;
+  color: var(--ink) !important;
+  font-family: var(--mono) !important;
+  font-size: 12.5px !important;
+  outline: none !important;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.cm-search input.cm-textfield:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.cm-search input.cm-textfield::placeholder {
+  color: var(--muted);
+}
+
+.cm-search button.cm-button {
+  appearance: none;
+  height: 28px;
+  padding: 0 12px !important;
+  margin: 0 !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 6px !important;
+  background: var(--surface) !important;
+  color: var(--ink-2) !important;
+  background-image: none !important;
+  font-family: var(--sans) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.cm-search button.cm-button:hover {
+  background: var(--surface-2) !important;
+  color: var(--ink) !important;
+  border-color: var(--ink) !important;
+}
+
+.cm-search button.cm-button[name="replace"],
+.cm-search button.cm-button[name="replaceAll"] {
+  background: var(--surface-2) !important;
+}
+
+.cm-search label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--ink-2);
+  padding: 0 4px;
+  user-select: none;
+}
+
+.cm-search label input[type="checkbox"] {
+  accent-color: var(--accent);
+  margin: 0;
+  cursor: pointer;
+}
+
+.cm-search button[name="close"] {
+  position: absolute !important;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  padding: 0 !important;
+  height: 24px;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--muted) !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  border-radius: 5px !important;
+  cursor: pointer;
+}
+
+.cm-search button[name="close"]:hover {
+  background: var(--line) !important;
+  color: var(--ink) !important;
+}
+
+/* highlight the current/active match */
+.cm-searchMatch {
+  background: var(--accent-soft) !important;
+  outline: 1px solid var(--accent);
+  border-radius: 2px;
+}
+
+.cm-searchMatch.cm-searchMatch-selected {
+  background: var(--accent) !important;
+  color: var(--primary-fg) !important;
+  outline: 1px solid var(--accent);
+}
+
 /* ── snapshot mode (applied during PNG capture) ───────── */
 .editor-host.snapshot {
   position: relative;

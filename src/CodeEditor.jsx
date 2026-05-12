@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
-import { EditorView, Decoration, ViewPlugin } from "@codemirror/view";
-import { RangeSetBuilder } from "@codemirror/state";
+import { EditorView, Decoration, ViewPlugin, keymap } from "@codemirror/view";
+import { RangeSetBuilder, EditorSelection, Prec } from "@codemirror/state";
 import { HighlightStyle, syntaxHighlighting, StreamLanguage } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 import { getThemeMeta } from "./themes.js";
@@ -31,6 +31,47 @@ const LANG_MAP = {
   dockerfile: StreamLanguage.define(dockerFile),
   dotenv: StreamLanguage.define(properties),
 };
+
+// Cmd/Ctrl+G — multi-cursor on every occurrence of:
+//   1. the current selection (if any), or
+//   2. the word at the caret (if collapsed)
+function selectAllOccurrences(view) {
+  const { state } = view;
+  const sel = state.selection.main;
+
+  let needle;
+  if (sel.empty) {
+    const word = state.wordAt(sel.head);
+    if (!word) return false;
+    needle = state.sliceDoc(word.from, word.to);
+  } else {
+    needle = state.sliceDoc(sel.from, sel.to);
+  }
+  if (!needle) return false;
+
+  const doc = state.doc.toString();
+  const ranges = [];
+  let i = 0;
+  while (true) {
+    const idx = doc.indexOf(needle, i);
+    if (idx === -1) break;
+    ranges.push(EditorSelection.range(idx, idx + needle.length));
+    i = idx + Math.max(1, needle.length);
+  }
+  if (ranges.length === 0) return false;
+
+  view.dispatch({
+    selection: EditorSelection.create(ranges, ranges.length - 1),
+    scrollIntoView: true,
+  });
+  return true;
+}
+
+const multiCursorKeymap = Prec.highest(
+  keymap.of([
+    { key: "Mod-g", run: selectAllOccurrences, preventDefault: true },
+  ])
+);
 
 const lightHighlight = HighlightStyle.define([
   { tag: [t.keyword, t.modifier, t.controlKeyword], color: "#6b2f4a" },
@@ -223,7 +264,7 @@ export default function CodeEditor({
 
   const langExt = LANG_MAP[language];
 
-  const extensions = [];
+  const extensions = [multiCursorKeymap];
   if (externalExt) {
     extensions.push(externalExt);
     extensions.push(baseLayout);

@@ -1,11 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { formatCode } from "./formatters.js";
-import CodeEditor from "./CodeEditor.jsx";
-import DiffView from "./DiffView.jsx";
-import CommandPalette from "./CommandPalette.jsx";
-import ShareDialog, { PasswordPrompt } from "./ShareDialog.jsx";
-import { encryptShare, decryptShare } from "./crypto.js";
-import { THEMES, getThemeMeta, flipTheme } from "./themes.js";
+import { formatCode } from "./formatters/index.js";
+import CodeEditor from "./components/CodeEditor.jsx";
+import DiffView from "./components/DiffView.jsx";
+import CommandPalette from "./components/CommandPalette.jsx";
+import ShareDialog, { PasswordPrompt } from "./components/ShareDialog.jsx";
+import JwtModal from "./components/JwtModal.jsx";
+import Resizer from "./components/Resizer.jsx";
+import CopyMarkdownButton from "./components/CopyMarkdownButton.jsx";
+import { encryptShare, decryptShare } from "./share/crypto.js";
+import { encodeShare, decodeShare } from "./share/url-share.js";
+import { THEMES, getThemeMeta, flipTheme } from "./editor-themes.js";
+import {
+  LANGUAGES,
+  SAMPLES,
+  EXT_TO_LANG,
+} from "./languages/registry.js";
+import {
+  detectLangFromContent,
+  detectLangFromFilename,
+} from "./languages/detect.js";
 import {
   sortLines,
   dedupeLines,
@@ -26,165 +39,10 @@ import {
   isoToTimestamp,
   pythonToJson,
   jsonToPython,
-} from "./utils.js";
+} from "./text-utils/index.js";
 
-const EXT_TO_LANG = {
-  py: "python",
-  pyw: "python",
-  json: "json",
-  yaml: "yaml",
-  yml: "yaml",
-  sh: "shell",
-  bash: "shell",
-  zsh: "shell",
-  js: "javascript",
-  mjs: "javascript",
-  cjs: "javascript",
-  jsx: "jsx",
-  ts: "typescript",
-  tsx: "tsx",
-  vue: "vue",
-  html: "html",
-  htm: "html",
-  css: "css",
-  scss: "css",
-  md: "markdown",
-  markdown: "markdown",
-  dockerfile: "dockerfile",
-  env: "dotenv",
-  sql: "sql",
-};
-
-function detectLangFromContent(src) {
-  const text = src.trim();
-  if (!text || text.length < 20) return null;
-  const head = text.slice(0, 4000);
-  const firstLine = head.split("\n", 1)[0];
-
-  if (/^#!\s*\/.*\b(bash|sh|zsh)\b/m.test(head)) return "shell";
-  if (/^FROM\s+\S+/m.test(head) && /^(RUN|CMD|COPY|EXPOSE|ENV|WORKDIR)\b/m.test(head))
-    return "dockerfile";
-  if (/^<\?xml|^<!doctype\s+html|^<html\b|^<!DOCTYPE/i.test(firstLine.trim()))
-    return "html";
-  // Vue SFC fingerprint: a top-level <template>, <script setup> or <script lang=…> block.
-  if (/^<template(\s|>)/m.test(head) && /<\/template>/.test(head))
-    return "vue";
-  if (/^<script\s+setup\b/m.test(head) && /<\/script>/.test(head))
-    return "vue";
-  if (/^---\s*$/m.test(head) || /^[a-z_][\w-]*:\s/m.test(head)) {
-    // YAML if also no curly-brace JSON markers
-    if (!/^\s*[\{\[]/.test(text) && !/[\{\}]/.test(firstLine)) return "yaml";
-  }
-  if (/^\s*[\{\[]/.test(text)) {
-    try {
-      JSON.parse(text);
-      return "json";
-    } catch {}
-  }
-  if (
-    /^\s*(select|insert\s+into|update|delete\s+from|create\s+(table|view|index|database|schema)|with\s+\w+\s+as|alter\s+table|drop\s+table|truncate\s+table)\b/i.test(
-      head
-    )
-  )
-    return "sql";
-  if (/^(def|class|import|from)\s+\w/m.test(head) || /^\s+\w.*:\s*$/m.test(head))
-    return "python";
-  {
-    const lines = head.split("\n").map((l) => l.trim()).filter(Boolean);
-    const meaningful = lines.filter((l) => !l.startsWith("#"));
-    if (meaningful.length >= 2) {
-      const envLike = meaningful.filter((l) =>
-        /^(export\s+)?[A-Z_][A-Z0-9_]*\s*=/i.test(l)
-      );
-      if (envLike.length === meaningful.length) return "dotenv";
-    }
-  }
-  // JSX/TSX heuristics: a JSX-looking element near a JS-ish keyword.
-  // (capitalised component tag, fragment, or attribute syntax)
-  const hasJsx =
-    /<([A-Z][A-Za-z0-9]*|>)/.test(head) ||
-    /\breturn\s*\(\s*</.test(head) ||
-    /<\w+[^>]*\s+[A-Za-z]+=\{/.test(head);
-  if (
-    /^(interface|type)\s+\w/m.test(head) ||
-    /:\s*(string|number|boolean|any)\b/.test(head)
-  )
-    return hasJsx ? "tsx" : "typescript";
-  if (
-    /^(const|let|var|function|export|import)\b/m.test(head) ||
-    /=>\s*[\{(]/m.test(head)
-  )
-    return hasJsx ? "jsx" : "javascript";
-  if (/^#{1,6}\s+\S/m.test(head) || /\[[^\]]+\]\([^)]+\)/.test(head))
-    return "markdown";
-  if (/^[\w*.#:-]+\s*\{[^}]*[:;]/m.test(head)) return "css";
-
-  return null;
-}
-
-// URL share encoding ──────────────────────────────────────────
-function encodeShare(state) {
-  const json = JSON.stringify(state);
-  const b64 = btoa(unescape(encodeURIComponent(json)));
-  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function decodeShare(hash) {
-  try {
-    let b64 = hash.replace(/-/g, "+").replace(/_/g, "/");
-    while (b64.length % 4) b64 += "=";
-    const json = decodeURIComponent(escape(atob(b64)));
-    return JSON.parse(json);
-  } catch {
-    return null;
-  }
-}
-
-function detectLangFromFilename(name) {
-  if (!name) return null;
-  const base = name.toLowerCase();
-  if (base === "dockerfile" || base.endsWith(".dockerfile")) return "dockerfile";
-  if (base === ".env" || base.startsWith(".env.")) return "dotenv";
-  const dot = base.lastIndexOf(".");
-  if (dot < 0) return null;
-  return EXT_TO_LANG[base.slice(dot + 1)] || null;
-}
-
-const LANGUAGES = [
-  { id: "python", label: "Python", ext: "py" },
-  { id: "json", label: "JSON", ext: "json" },
-  { id: "yaml", label: "YAML", ext: "yaml" },
-  { id: "shell", label: "Shell", ext: "sh" },
-  { id: "dockerfile", label: "Dockerfile", ext: "" },
-  { id: "javascript", label: "JavaScript", ext: "js" },
-  { id: "typescript", label: "TypeScript", ext: "ts" },
-  { id: "jsx", label: "JSX (React)", ext: "jsx" },
-  { id: "tsx", label: "TSX (React)", ext: "tsx" },
-  { id: "vue", label: "Vue SFC", ext: "vue" },
-  { id: "html", label: "HTML", ext: "html" },
-  { id: "css", label: "CSS", ext: "css" },
-  { id: "markdown", label: "Markdown", ext: "md" },
-  { id: "dotenv", label: "Dotenv", ext: "env" },
-  { id: "sql", label: "SQL", ext: "sql" },
-];
-
-const SAMPLES = {
-  python: `def greet(name,age=18):\n    return f"hi {name}, {age}"\nprint( greet("ada") )`,
-  json: `[{"id":1,"name":"ada","role":"engineer","active":true},{"id":2,"name":"linus","role":"engineer","active":false},{"id":3,"name":"grace","role":"admiral","active":true}]`,
-  yaml: `name: pretty-lush\nlangs:\n - py\n - json\nactive: true`,
-  shell: `#!/usr/bin/env bash\nset -e\nfor f in *.py;do\necho "$f"\ndone`,
-  dockerfile: `FROM python:3.11-slim\nWORKDIR  /app\nCOPY . .\nRUN pip install -r requirements.txt\nCMD ["python","app.py"]`,
-  javascript: `const greet=(name,age=18)=>{\nreturn \`hi \${name}, \${age}\`\n}\nconsole.log(greet("ada"))`,
-  typescript: `type User={name:string;age?:number}\nconst greet=(u:User)=>\`hi \${u.name}\`\nconsole.log(greet({name:"ada"}))`,
-  jsx: `function Greeting({name,age=18}){\nreturn (<div className="card"><h1>hi {name}</h1><p>age: {age}</p></div>)\n}\nexport default Greeting`,
-  tsx: `type Props={name:string;age?:number}\nexport default function Greeting({name,age=18}:Props){\nreturn (<div className="card"><h1>hi {name}</h1><p>age: {age}</p></div>)\n}`,
-  vue: `<template>\n<div class="card"><h1>hi {{name}}</h1><p>age: {{age}}</p></div>\n</template>\n<script setup>\nimport { defineProps } from 'vue'\ndefineProps({name:String,age:{type:Number,default:18}})\n</script>\n<style scoped>\n.card{padding:12px;border:1px solid #ddd;border-radius:6px}\n</style>`,
-  html: `<!doctype html><html><head><title>x</title></head><body><h1>hello</h1><p>world</p></body></html>`,
-  css: `body{margin:0;font-family:system-ui}.btn{background:#1f6f4a;color:#fff;padding:8px 12px;border-radius:6px}`,
-  markdown: `# pretty-lush\n\nA formatter for **JSON**,YAML,Python and more.\n\n- fast\n- private\n-  in your browser`,
-  dotenv: `# pretty-lush sample env\nNODE_ENV =production\nPORT= 3000\nDATABASE_URL="postgres://user:pass@localhost:5432/db"\n  API_KEY=  sk_live_abc123\nFEATURE_FLAG=true`,
-  sql: `select u.id, u.name, count(o.id) as order_count from users u left join orders o on o.user_id=u.id where u.active=true and u.created_at>='2024-01-01' group by u.id,u.name having count(o.id)>5 order by order_count desc limit 50;`,
-};
+// Language registry, file-extension map, content detection, and sample
+// snippets live in src/languages/. Anything App-level imports from there.
 
 const STORAGE_KEY = "pretty-lush:state:v1";
 const LAYOUT_KEY = "pretty-lush:layout:v1";
@@ -1765,131 +1623,6 @@ function CopyButton({ text }) {
   );
 }
 
-function JwtModal({ result, onClose }) {
-  useEffect(() => {
-    if (!result) return;
-    function onKey(e) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [result, onClose]);
-
-  if (!result) return null;
-
-  const { header, payload, signature, meta } = result;
-  const fmt = (d) =>
-    d ? `${d.toISOString()} (${d.toLocaleString()})` : "—";
-
-  async function copy(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {}
-  }
-
-  return (
-    <div className="dialog-overlay" onMouseDown={onClose}>
-      <div
-        className="dialog jwt-dialog"
-        onMouseDown={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-labelledby="jwt-title"
-      >
-        <div className="dialog-head">
-          <h2 id="jwt-title" className="dialog-title">
-            JWT decoded
-            {meta.expired === true && (
-              <span className="jwt-badge jwt-badge-warn">expired</span>
-            )}
-            {meta.expired === false && (
-              <span className="jwt-badge jwt-badge-ok">valid window</span>
-            )}
-          </h2>
-          <button
-            type="button"
-            className="dialog-close"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-        <div className="dialog-body">
-          <JwtSection
-            label="Header"
-            value={JSON.stringify(header, null, 2)}
-            onCopy={() => copy(JSON.stringify(header, null, 2))}
-          />
-          <JwtSection
-            label="Payload"
-            value={JSON.stringify(payload, null, 2)}
-            onCopy={() => copy(JSON.stringify(payload, null, 2))}
-          />
-          <div className="jwt-meta">
-            <div>
-              <span className="jwt-meta-key">Issued</span>
-              <span>{fmt(meta.issuedAt)}</span>
-            </div>
-            <div>
-              <span className="jwt-meta-key">Not before</span>
-              <span>{fmt(meta.notBefore)}</span>
-            </div>
-            <div>
-              <span className="jwt-meta-key">Expires</span>
-              <span>{fmt(meta.expiresAt)}</span>
-            </div>
-            {meta.lifetimeSec != null && (
-              <div>
-                <span className="jwt-meta-key">Lifetime</span>
-                <span>
-                  {meta.lifetimeSec}s ({(meta.lifetimeSec / 60).toFixed(1)} min)
-                </span>
-              </div>
-            )}
-          </div>
-          <JwtSection
-            label="Signature"
-            value={signature}
-            mono
-            onCopy={() => copy(signature)}
-          />
-          <p className="dialog-hint">
-            Signature is not verified — pretty-lush has no key. Use a server
-            or your auth library to validate.
-          </p>
-        </div>
-        <div className="dialog-actions">
-          <button type="button" className="btn-primary" onClick={onClose}>
-            Done
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function JwtSection({ label, value, mono, onCopy }) {
-  return (
-    <div className="jwt-section">
-      <div className="jwt-section-head">
-        <span className="jwt-section-label">{label}</span>
-        <button
-          type="button"
-          className="copy-btn"
-          onClick={onCopy}
-          aria-label={`Copy ${label}`}
-        >
-          Copy
-        </button>
-      </div>
-      <pre className={`jwt-section-body${mono ? " is-mono" : ""}`}>{value}</pre>
-    </div>
-  );
-}
-
 function JsonTable({ rows, keys }) {
   function renderCell(v) {
     if (v === null || v === undefined)
@@ -1925,122 +1658,6 @@ function JsonTable({ rows, keys }) {
         </tbody>
       </table>
     </div>
-  );
-}
-
-function Resizer({ ariaLabel, onDrag, startValue, startContext }) {
-  const [dragging, setDragging] = useState(false);
-
-  function handlePointerDown(e) {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startVal = startValue;
-    const ctx = startContext ? startContext() : null;
-    setDragging(true);
-    const prevCursor = document.body.style.cursor;
-    const prevSelect = document.body.style.userSelect;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-
-    function onMove(ev) {
-      onDrag(ev.clientX - startX, startVal, ctx);
-    }
-    function onUp() {
-      setDragging(false);
-      document.body.style.cursor = prevCursor;
-      document.body.style.userSelect = prevSelect;
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    }
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  }
-
-  function handleDoubleClick() {
-    // reset to default — caller controls semantics via startValue alone,
-    // so we emit a large negative delta only meaningful for sidebar; the
-    // editor resizer responds to its own ctx, so this is a soft reset.
-    onDrag(0, startValue, startContext ? startContext() : null);
-  }
-
-  return (
-    <div
-      className={`resizer ${dragging ? "is-dragging" : ""}`}
-      role="separator"
-      aria-orientation="vertical"
-      aria-label={ariaLabel}
-      onPointerDown={handlePointerDown}
-      onDoubleClick={handleDoubleClick}
-    />
-  );
-}
-
-const MARKDOWN_LANG_TAGS = {
-  python: "python",
-  json: "json",
-  yaml: "yaml",
-  shell: "bash",
-  dockerfile: "dockerfile",
-  javascript: "js",
-  typescript: "ts",
-  jsx: "jsx",
-  tsx: "tsx",
-  vue: "vue",
-  html: "html",
-  css: "css",
-  markdown: "md",
-  dotenv: "ini",
-  sql: "sql",
-};
-
-function CopyMarkdownButton({ text, lang }) {
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!copied) return;
-    const t = setTimeout(() => setCopied(false), 1500);
-    return () => clearTimeout(t);
-  }, [copied]);
-
-  async function handleCopy() {
-    if (!text) return;
-    const tag = MARKDOWN_LANG_TAGS[lang] || "";
-    const body = text.replace(/\n+$/, "");
-    const md = "```" + tag + "\n" + body + "\n```\n";
-    try {
-      await navigator.clipboard.writeText(md);
-      setCopied(true);
-    } catch {
-      setCopied(false);
-    }
-  }
-
-  return (
-    <button
-      type="button"
-      className="copy-btn"
-      onClick={handleCopy}
-      disabled={!text}
-      aria-label="Copy as Markdown code block"
-      title="Copy as Markdown code block"
-    >
-      {copied ? (
-        <>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          MD
-        </>
-      ) : (
-        <>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 6h16v12H4z" />
-            <path d="M7 14V10l2 2 2-2v4M14 10v4h3M15 12l-1 2-1-2" />
-          </svg>
-          MD
-        </>
-      )}
-    </button>
   );
 }
 

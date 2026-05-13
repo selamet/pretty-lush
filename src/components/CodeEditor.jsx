@@ -2,42 +2,11 @@ import { useEffect, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, Decoration, ViewPlugin, keymap } from "@codemirror/view";
 import { RangeSetBuilder, EditorSelection, Prec } from "@codemirror/state";
-import { HighlightStyle, syntaxHighlighting, StreamLanguage } from "@codemirror/language";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { getSearchQuery } from "@codemirror/search";
 import { tags as t } from "@lezer/highlight";
-import { getThemeMeta } from "./themes.js";
-import { python } from "@codemirror/lang-python";
-import { json } from "@codemirror/lang-json";
-import { yaml } from "@codemirror/lang-yaml";
-import { markdown } from "@codemirror/lang-markdown";
-import { css } from "@codemirror/lang-css";
-import { html } from "@codemirror/lang-html";
-import { javascript } from "@codemirror/lang-javascript";
-import { sql } from "@codemirror/lang-sql";
-import { shell } from "@codemirror/legacy-modes/mode/shell";
-import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
-import { properties } from "@codemirror/legacy-modes/mode/properties";
-
-const LANG_MAP = {
-  python: python(),
-  json: json(),
-  yaml: yaml(),
-  markdown: markdown(),
-  css: css(),
-  html: html(),
-  javascript: javascript(),
-  typescript: javascript({ typescript: true }),
-  jsx: javascript({ jsx: true }),
-  tsx: javascript({ jsx: true, typescript: true }),
-  // No dedicated Vue grammar in CodeMirror 6 core — HTML covers the SFC shell
-  // and embeds CSS reasonably; <script> content is plain text but bracket
-  // matching and indentation still work.
-  vue: html(),
-  sql: sql(),
-  shell: StreamLanguage.define(shell),
-  dockerfile: StreamLanguage.define(dockerFile),
-  dotenv: StreamLanguage.define(properties),
-};
+import { getThemeMeta } from "../editor-themes.js";
+import { LANG_MAP } from "../languages/codemirror.js";
 
 // Cmd/Ctrl+G — multi-cursor on every occurrence of:
 //   1. the current selection (if any), or

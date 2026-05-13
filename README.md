@@ -164,26 +164,61 @@ The ⌘K palette is the canonical surface — every formatter, theme, text utili
 
 ```
 pretty-lush/
-├── public/                  # static assets (og.svg, robots, sitemap)
-├── api/                     # Vercel serverless functions
-│   ├── _store.js            # KV / in-memory storage adapter
-│   ├── paste.js             # POST — store encrypted paste
-│   └── paste/[id].js        # GET  — retrieve (and DEL if burnAfterRead)
+├── public/                          # static assets (og.svg, robots, sitemap)
+├── api/                             # Vercel serverless functions
+│   ├── _store.js                    # KV / in-memory storage adapter
+│   ├── paste.js                     # POST — store encrypted paste
+│   └── paste/[id].js                # GET  — retrieve (and DEL if burnAfterRead)
 ├── src/
-│   ├── App.jsx              # main shell — state, topbar, sidebar, panes, palette wiring
-│   ├── CodeEditor.jsx       # CodeMirror wrapper + themes + multi-cursor command
-│   ├── DiffView.jsx         # input ↔ output line diff
-│   ├── CommandPalette.jsx   # ⌘K palette
-│   ├── ShareDialog.jsx      # share modal + password prompt + secret/burn toggles
-│   ├── crypto.js            # AES-GCM 256 + optional PBKDF2-derived password key
-│   ├── formatters.js        # language → formatter dispatch
-│   ├── utils.js             # text utilities (sort, encode, JWT decode, …)
-│   ├── themes.js            # editor theme registry + flipTheme helper
-│   └── styles.css           # all styling, light + dark + theme overrides
-├── index.html               # title / meta / OG / PWA tags
-├── vite.config.js           # vite + react + PWA config
+│   ├── main.jsx                     # React entry
+│   ├── App.jsx                      # main shell — state, topbar, sidebar, panes, palette wiring
+│   ├── styles.css                   # all styling, light + dark + theme overrides
+│   ├── editor-themes.js             # editor theme registry + flipTheme helper
+│   │
+│   ├── components/                  # React UI building blocks
+│   │   ├── CodeEditor.jsx            #   CodeMirror wrapper + multi-cursor + match-count
+│   │   ├── CommandPalette.jsx        #   ⌘K palette
+│   │   ├── CopyMarkdownButton.jsx    #   copy output as fenced code block
+│   │   ├── DiffView.jsx              #   input ↔ output line diff
+│   │   ├── JwtModal.jsx              #   modal that renders a decoded JWT
+│   │   ├── Resizer.jsx               #   drag handle for layout splits
+│   │   └── ShareDialog.jsx           #   share modal + password prompt + toggles
+│   │
+│   ├── formatters/                  # one module per backend; index.js dispatches
+│   │   ├── index.js                  #   formatCode(lang, src, opts) + FormatError re-export
+│   │   ├── errors.js                 #   FormatError + Prettier / Ruff / sh error mappers
+│   │   ├── helpers.js                #   shared structural helpers
+│   │   ├── prettier.js               #   Prettier standalone + lazy-loaded plugins
+│   │   ├── json.js                   #   JSON.parse + JSONPath + JSON.stringify
+│   │   ├── python.js                 #   Ruff WASM workspace
+│   │   ├── shell.js                  #   sh-syntax / mvdan-sh WASM
+│   │   ├── sql.js                    #   sql-formatter
+│   │   ├── dockerfile.js             #   in-house heuristic
+│   │   └── dotenv.js                 #   in-house heuristic
+│   │
+│   ├── languages/                   # single source of truth for "what languages exist"
+│   │   ├── registry.js               #   LANGUAGES, SAMPLES, EXT_TO_LANG, MARKDOWN_LANG_TAGS
+│   │   ├── detect.js                 #   detectLangFromContent / detectLangFromFilename
+│   │   └── codemirror.js             #   LANG_MAP for CodeMirror 6
+│   │
+│   ├── share/                       # everything that talks to the share backend
+│   │   ├── crypto.js                 #   AES-GCM 256 + optional PBKDF2-derived password key
+│   │   └── url-share.js              #   URL-fragment encode / decode helpers
+│   │
+│   └── text-utils/                  # pure string transforms used by the ⌘K palette
+│       ├── index.js                  #   barrel for ergonomic imports
+│       ├── lines.js                  #   sort, dedupe, reverse, trim, collapse
+│       ├── case.js                   #   upper / lower / title
+│       ├── encoding.js               #   base64 / url-percent / hex (both directions)
+│       ├── jwt.js                    #   decodeJwt
+│       ├── timestamp.js              #   unix ↔ ISO
+│       └── python-json.js            #   Python literal ↔ JSON converter
+├── index.html                       # title / meta / OG / PWA tags
+├── vite.config.js                   # vite + react + PWA config
 └── package.json
 ```
+
+Adding a new language is a focused, three-file change: write `src/formatters/<lang>.js`, add a case to `src/formatters/index.js`, and register the entry in `src/languages/registry.js` + `src/languages/codemirror.js`.
 
 State is stored in `localStorage`:
 

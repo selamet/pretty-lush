@@ -6,7 +6,7 @@ Live: **<https://pretty-lush.selamet.dev>**
 
 Powered by real formatters compiled to WebAssembly or pure JavaScript:
 
-- **Prettier** — JSON · YAML · Markdown · CSS · HTML · JavaScript · TypeScript
+- **Prettier** — JSON · YAML · Markdown · CSS · HTML · JavaScript · TypeScript · JSX · TSX · Vue SFC
 - **Ruff** — Python (black-compatible)
 - **sh-syntax** — Shell / Bash
 - **sql-formatter** — SQL (Postgres / MySQL / SQLite / BigQuery / …)
@@ -18,7 +18,7 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 
 **Formatter**
 
-- 12 languages out of the box: Python · JSON · YAML · Shell · Dockerfile · JavaScript · TypeScript · HTML · CSS · Markdown · Dotenv · SQL
+- 15 languages out of the box: Python · JSON · YAML · Shell · Dockerfile · JavaScript · TypeScript · JSX · TSX · Vue SFC · HTML · CSS · Markdown · Dotenv · SQL
 - Auto-detect language from pasted content or dropped files
 - Drag-and-drop a file to load it (extension picks the language)
 - Side-by-side editor with syntax highlighting (CodeMirror 6)
@@ -44,6 +44,7 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 - Encoding: Base64 / URL percent / Hex — encode & decode in both directions
 - **JWT decoder** with a small modal showing header, payload, signature, issued/expires meta and an `expired` badge
 - Unix timestamp ↔ ISO date
+- **Python ↔ JSON** — paste a `repr(dict)` or `print(dict)` output and convert to JSON (handles `True`/`False`/`None`, single-quoted strings, tuples, sets, hex / underscored ints, triple-quoted strings); JSON → Python emits a properly indented Python literal with single quotes
 
 **Sharing**
 
@@ -132,7 +133,8 @@ The URL-only share (`#s=...`) needs no backend and is always available.
 
 Everything runs client-side. Formatters are dynamically imported the first time their language is requested, so:
 
-- **JSON / YAML / Markdown / CSS / HTML / JS / TS** fetch the relevant Prettier parser chunk.
+- **JSON / YAML / Markdown / CSS / HTML / JS / TS / JSX / TSX** fetch the relevant Prettier parser chunk.
+- **Vue SFC** fetches Prettier's `html` + `babel` + `typescript` + `postcss` plugins together so each `<template>` / `<script>` / `<style>` block formats with its native parser.
 - **JSON** is then re-serialized via `JSON.stringify` for canonical multi-line output (Prettier's `json` parser keeps short objects on one line).
 - **Python** boots a Ruff WebAssembly workspace (cached for subsequent calls).
 - **Shell** loads a small Go-WASM wrapper around `mvdan/sh`.

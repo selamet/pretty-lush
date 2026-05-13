@@ -27,6 +27,12 @@ const LANG_MAP = {
   html: html(),
   javascript: javascript(),
   typescript: javascript({ typescript: true }),
+  jsx: javascript({ jsx: true }),
+  tsx: javascript({ jsx: true, typescript: true }),
+  // No dedicated Vue grammar in CodeMirror 6 core — HTML covers the SFC shell
+  // and embeds CSS reasonably; <script> content is plain text but bracket
+  // matching and indentation still work.
+  vue: html(),
   sql: sql(),
   shell: StreamLanguage.define(shell),
   dockerfile: StreamLanguage.define(dockerFile),

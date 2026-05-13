@@ -24,6 +24,8 @@ import {
   decodeJwt,
   timestampToIso,
   isoToTimestamp,
+  pythonToJson,
+  jsonToPython,
 } from "./utils.js";
 
 const EXT_TO_LANG = {
@@ -38,9 +40,10 @@ const EXT_TO_LANG = {
   js: "javascript",
   mjs: "javascript",
   cjs: "javascript",
-  jsx: "javascript",
+  jsx: "jsx",
   ts: "typescript",
-  tsx: "typescript",
+  tsx: "tsx",
+  vue: "vue",
   html: "html",
   htm: "html",
   css: "css",
@@ -63,6 +66,11 @@ function detectLangFromContent(src) {
     return "dockerfile";
   if (/^<\?xml|^<!doctype\s+html|^<html\b|^<!DOCTYPE/i.test(firstLine.trim()))
     return "html";
+  // Vue SFC fingerprint: a top-level <template>, <script setup> or <script lang=…> block.
+  if (/^<template(\s|>)/m.test(head) && /<\/template>/.test(head))
+    return "vue";
+  if (/^<script\s+setup\b/m.test(head) && /<\/script>/.test(head))
+    return "vue";
   if (/^---\s*$/m.test(head) || /^[a-z_][\w-]*:\s/m.test(head)) {
     // YAML if also no curly-brace JSON markers
     if (!/^\s*[\{\[]/.test(text) && !/[\{\}]/.test(firstLine)) return "yaml";
@@ -91,16 +99,22 @@ function detectLangFromContent(src) {
       if (envLike.length === meaningful.length) return "dotenv";
     }
   }
+  // JSX/TSX heuristics: a JSX-looking element near a JS-ish keyword.
+  // (capitalised component tag, fragment, or attribute syntax)
+  const hasJsx =
+    /<([A-Z][A-Za-z0-9]*|>)/.test(head) ||
+    /\breturn\s*\(\s*</.test(head) ||
+    /<\w+[^>]*\s+[A-Za-z]+=\{/.test(head);
   if (
     /^(interface|type)\s+\w/m.test(head) ||
     /:\s*(string|number|boolean|any)\b/.test(head)
   )
-    return "typescript";
+    return hasJsx ? "tsx" : "typescript";
   if (
     /^(const|let|var|function|export|import)\b/m.test(head) ||
     /=>\s*[\{(]/m.test(head)
   )
-    return "javascript";
+    return hasJsx ? "jsx" : "javascript";
   if (/^#{1,6}\s+\S/m.test(head) || /\[[^\]]+\]\([^)]+\)/.test(head))
     return "markdown";
   if (/^[\w*.#:-]+\s*\{[^}]*[:;]/m.test(head)) return "css";
@@ -144,6 +158,9 @@ const LANGUAGES = [
   { id: "dockerfile", label: "Dockerfile", ext: "" },
   { id: "javascript", label: "JavaScript", ext: "js" },
   { id: "typescript", label: "TypeScript", ext: "ts" },
+  { id: "jsx", label: "JSX (React)", ext: "jsx" },
+  { id: "tsx", label: "TSX (React)", ext: "tsx" },
+  { id: "vue", label: "Vue SFC", ext: "vue" },
   { id: "html", label: "HTML", ext: "html" },
   { id: "css", label: "CSS", ext: "css" },
   { id: "markdown", label: "Markdown", ext: "md" },
@@ -159,6 +176,9 @@ const SAMPLES = {
   dockerfile: `FROM python:3.11-slim\nWORKDIR  /app\nCOPY . .\nRUN pip install -r requirements.txt\nCMD ["python","app.py"]`,
   javascript: `const greet=(name,age=18)=>{\nreturn \`hi \${name}, \${age}\`\n}\nconsole.log(greet("ada"))`,
   typescript: `type User={name:string;age?:number}\nconst greet=(u:User)=>\`hi \${u.name}\`\nconsole.log(greet({name:"ada"}))`,
+  jsx: `function Greeting({name,age=18}){\nreturn (<div className="card"><h1>hi {name}</h1><p>age: {age}</p></div>)\n}\nexport default Greeting`,
+  tsx: `type Props={name:string;age?:number}\nexport default function Greeting({name,age=18}:Props){\nreturn (<div className="card"><h1>hi {name}</h1><p>age: {age}</p></div>)\n}`,
+  vue: `<template>\n<div class="card"><h1>hi {{name}}</h1><p>age: {{age}}</p></div>\n</template>\n<script setup>\nimport { defineProps } from 'vue'\ndefineProps({name:String,age:{type:Number,default:18}})\n</script>\n<style scoped>\n.card{padding:12px;border:1px solid #ddd;border-radius:6px}\n</style>`,
   html: `<!doctype html><html><head><title>x</title></head><body><h1>hello</h1><p>world</p></body></html>`,
   css: `body{margin:0;font-family:system-ui}.btn{background:#1f6f4a;color:#fff;padding:8px 12px;border-radius:6px}`,
   markdown: `# pretty-lush\n\nA formatter for **JSON**,YAML,Python and more.\n\n- fast\n- private\n-  in your browser`,
@@ -932,6 +952,9 @@ export default function App() {
           { id: "util-url-dec", group: "Encode", label: "URL decode (percent)", keywords: "uri unescape", run: () => runTextUtil("URL decode", urlDecode) },
           { id: "util-hex-enc", group: "Encode", label: "String → hex", keywords: "encode", run: () => runTextUtil("Hex encode", hexEncode) },
           { id: "util-hex-dec", group: "Encode", label: "Hex → string", keywords: "decode", run: () => runTextUtil("Hex decode", hexDecode) },
+          // ── conversion ──────────────────────────────────
+          { id: "util-py-to-json", group: "Convert", label: "Python dict → JSON", keywords: "repr literal true false none", run: () => runTextUtil("Python → JSON", (s) => pythonToJson(s, { indent: Number(settings.indent) === 0 || settings.indent === "tab" ? 2 : Number(settings.indent) || 2 })) },
+          { id: "util-json-to-py", group: "Convert", label: "JSON → Python dict", keywords: "literal true false none", run: () => runTextUtil("JSON → Python", (s) => jsonToPython(s, { indent: settings.indent === "tab" ? 4 : Number(settings.indent) || 4 })) },
           // ── special ─────────────────────────────────────
           { id: "util-jwt", group: "Decode", label: "Decode JWT", keywords: "token jsonwebtoken", run: runJwtDecode },
           { id: "util-ts-iso", group: "Decode", label: "Unix timestamp → ISO date", keywords: "epoch time", run: () => runTextUtil("Timestamp → ISO", timestampToIso) },
@@ -1960,6 +1983,9 @@ const MARKDOWN_LANG_TAGS = {
   dockerfile: "dockerfile",
   javascript: "js",
   typescript: "ts",
+  jsx: "jsx",
+  tsx: "tsx",
+  vue: "vue",
   html: "html",
   css: "css",
   markdown: "md",

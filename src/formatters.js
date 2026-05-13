@@ -28,6 +28,12 @@ export async function formatCode(lang, src, opts = {}) {
       return formatWithPrettier(src, "babel", o);
     case "typescript":
       return formatWithPrettier(src, "typescript", o);
+    case "jsx":
+      return formatWithPrettier(src, "babel", o);
+    case "tsx":
+      return formatWithPrettier(src, "typescript", o);
+    case "vue":
+      return formatWithPrettier(src, "vue", o);
     case "shell":
       return formatShell(src, o);
     case "dockerfile":
@@ -230,6 +236,15 @@ async function pluginsFor(parser) {
     case "typescript":
       return Promise.all([
         loadPlugin("typescript", () => import("prettier/plugins/typescript")),
+        loadPlugin("estree", () => import("prettier/plugins/estree")),
+      ]);
+    // Vue SFC: html plugin handles <template>, babel/ts for <script>, postcss for <style>.
+    case "vue":
+      return Promise.all([
+        loadPlugin("html", () => import("prettier/plugins/html")),
+        loadPlugin("babel", () => import("prettier/plugins/babel")),
+        loadPlugin("typescript", () => import("prettier/plugins/typescript")),
+        loadPlugin("postcss", () => import("prettier/plugins/postcss")),
         loadPlugin("estree", () => import("prettier/plugins/estree")),
       ]);
     default:

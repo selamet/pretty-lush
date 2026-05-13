@@ -12,7 +12,7 @@ export default defineConfig({
         name: "pretty-lush — in-browser code formatter",
         short_name: "pretty-lush",
         description:
-          "Format Python, JSON, YAML, SQL, Shell, Dockerfile and more in your browser. Powered by Prettier, Ruff and friends.",
+          "Format Python, JSON, YAML, SQL, Shell, Dockerfile, JSX/TSX and Vue in your browser. Powered by Prettier, Ruff and friends.",
         theme_color: "#1f6f4a",
         background_color: "#fbfbf9",
         display: "standalone",

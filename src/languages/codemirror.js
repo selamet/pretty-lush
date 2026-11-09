@@ -46,6 +46,17 @@ export const LANG_LOADERS = {
     legacy(() =>
       import("@codemirror/legacy-modes/mode/dockerfile").then((m) => m.dockerFile)
     ),
+  xml: () => import("@codemirror/lang-xml").then((m) => m.xml()),
+  graphql: () =>
+    legacy(() => import("./graphql-mode.js").then((m) => m.graphql)),
+  toml: () =>
+    legacy(() =>
+      import("@codemirror/legacy-modes/mode/toml").then((m) => m.toml)
+    ),
+  ini: () =>
+    legacy(() =>
+      import("@codemirror/legacy-modes/mode/properties").then((m) => m.properties)
+    ),
   dotenv: () =>
     legacy(() =>
       import("@codemirror/legacy-modes/mode/properties").then((m) => m.properties)

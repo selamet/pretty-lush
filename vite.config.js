@@ -8,6 +8,12 @@ import { VitePWA } from "vite-plugin-pwa";
 const FORMATTER_CHUNKS = [
   [/node_modules\/prettier\/plugins\/([\w-]+)/, (m) => `fmt-prettier-${m[1]}`],
   [/node_modules\/prettier\/standalone/, () => "fmt-prettier"],
+  // @prettier/plugin-xml pulls in prettier/doc and the chevrotain-based
+  // @xml-tools/parser; keep all of it in one lazily cached chunk.
+  [
+    /node_modules\/(@prettier\/plugin-xml|@xml-tools|chevrotain|regexp-to-ast)\/|node_modules\/prettier\/doc/,
+    () => "fmt-xml",
+  ],
   [/node_modules\/sql-formatter\//, () => "fmt-sql"],
   [/node_modules\/sh-syntax\//, () => "fmt-shell"],
   [/node_modules\/@astral-sh\/ruff-wasm-web\//, () => "fmt-ruff"],

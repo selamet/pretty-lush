@@ -19,6 +19,10 @@ export const LANGUAGES = [
   { id: "markdown",   label: "Markdown",      ext: "md" },
   { id: "dotenv",     label: "Dotenv",        ext: "env" },
   { id: "sql",        label: "SQL",           ext: "sql" },
+  { id: "xml",        label: "XML / SVG",     ext: "xml" },
+  { id: "graphql",    label: "GraphQL",       ext: "graphql" },
+  { id: "toml",       label: "TOML",          ext: "toml" },
+  { id: "ini",        label: "INI",           ext: "ini" },
 ];
 
 // Seed content shown when the user picks a language for the first time.
@@ -38,6 +42,10 @@ export const SAMPLES = {
   css: `body{margin:0;font-family:system-ui}.btn{background:#1f6f4a;color:#fff;padding:8px 12px;border-radius:6px}`,
   markdown: `# pretty-lush\n\nA formatter for **JSON**,YAML,Python and more.\n\n- fast\n- private\n-  in your browser`,
   dotenv: `# pretty-lush sample env\nNODE_ENV =production\nPORT= 3000\nDATABASE_URL="postgres://user:pass@localhost:5432/db"\n  API_KEY=  sk_live_abc123\nFEATURE_FLAG=true`,
+  xml: `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></g></svg>`,
+  graphql: `query GetUser($id:ID!){user(id:$id){id name posts(first:10){edges{node{title publishedAt}}}}}`,
+  toml: `[package]\nname="pretty-lush"\nversion="0.1.0"\nkeywords=["formatter","wasm"]\n[dependencies]\nserde={version="1.0",features=["derive"]}\n[[bin]]\nname="lush"`,
+  ini: `; pretty-lush sample config\n[ server ]\nhost=localhost\nport =8080\n[database]\nuser= admin\npath=/var/lib/db`,
   sql: `select u.id, u.name, count(o.id) as order_count from users u left join orders o on o.user_id=u.id where u.active=true and u.created_at>='2024-01-01' group by u.id,u.name having count(o.id)>5 order by order_count desc limit 50;`,
 };
 
@@ -67,6 +75,13 @@ export const EXT_TO_LANG = {
   dockerfile: "dockerfile",
   env: "dotenv",
   sql: "sql",
+  xml: "xml",
+  svg: "xml",
+  graphql: "graphql",
+  gql: "graphql",
+  toml: "toml",
+  ini: "ini",
+  cfg: "ini",
 };
 
 // Language id → fenced-code tag used by the "Copy as Markdown" action.
@@ -86,11 +101,15 @@ export const MARKDOWN_LANG_TAGS = {
   markdown: "md",
   dotenv: "ini",
   sql: "sql",
+  xml: "xml",
+  graphql: "graphql",
+  toml: "toml",
+  ini: "ini",
 };
 
 // Sidebar grouping. Any language missing here falls into "Other".
 export const LANGUAGE_GROUPS = [
-  { name: "Data", ids: ["json", "yaml", "sql", "dotenv"] },
+  { name: "Data", ids: ["json", "yaml", "toml", "xml", "sql", "graphql", "ini", "dotenv"] },
   { name: "Web", ids: ["javascript", "typescript", "jsx", "tsx", "vue", "html", "css"] },
   { name: "Scripts & ops", ids: ["python", "shell", "dockerfile"] },
   { name: "Docs", ids: ["markdown"] },

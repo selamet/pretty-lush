@@ -35,6 +35,13 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 - **JSONPath filter** — type an expression (`$.items[*].id`, `$..name`) in the JSON pane and the formatted output is the matched values
 - **Table view** — when output is an array of objects, toggle between Code and a sticky-header table; **CSV** downloads the table as `table.csv`
 
+**JSON Schema validation**
+
+- **Schema** toggle in the JSON input pane (or ⌘K → "Validate JSON against a schema") opens a schema editor under the input; the input is validated as you type (debounced) with Ajv + ajv-formats, loaded on first use
+- draft-07 and 2020-12, picked from `$schema` (2020-12 when absent); every error is listed with its JSON pointer, message and keyword — click one to jump to the offending value — and shown as inline markers in the input. Valid documents show a "Valid against schema" state; invalid schema JSON or an invalid schema gets its own error
+- **Generate** (or ⌘K → "Generate JSON Schema from JSON") infers a 2020-12 schema from the current JSON with the same merge rules as Generate types; the schema persists across reloads
+- Works alongside Types / Tree / Table in the output pane; it hides while the input isn't JSON (e.g. after Convert → YAML) and comes back when you return to JSON
+
 **Data converters**
 
 - **JSON ↔ YAML ↔ TOML ↔ CSV** — the **Convert** menu in the output pane (or ⌘K → "Convert JSON → YAML", …) converts the current input and switches the editor to the target language; the previous input is saved in Recent so you can go back with one click
@@ -224,6 +231,7 @@ pretty-lush/
 │   │   └── settings.js · workspace.js · history.js · layout.js
 │   ├── convert/                     # data converters (JSON ↔ YAML ↔ TOML ↔ CSV, RFC 4180 CSV)
 │   ├── codegen/                     # JSON → TypeScript / Zod / Pydantic (schema inference + emitters)
+│   ├── schema/                      # JSON Schema validation (lazy Ajv), JSON pointer → source offset, schema generation
 │   ├── output/                      # pure output helpers (JSON tree / table, filenames)
 │   ├── formatters/                  # one module per backend; index.js dispatches
 │   ├── languages/                   # registry, detection, sidebar groups, CodeMirror modes

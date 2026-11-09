@@ -20,6 +20,12 @@ const FORMATTER_CHUNKS = [
   // Data converters (src/convert/): YAML and TOML parser/stringifiers.
   [/node_modules\/yaml\//, () => "fmt-yaml"],
   [/node_modules\/smol-toml\//, () => "fmt-toml"],
+  // JSON Schema validation (src/schema/validate.js): Ajv, its formats
+  // plugin and Ajv-only dependencies.
+  [
+    /node_modules\/(ajv|ajv-formats|fast-deep-equal|fast-uri|json-schema-traverse|require-from-string)\//,
+    () => "fmt-ajv",
+  ],
 ];
 
 // Long-lived vendor chunks: they change far less often than app code, so

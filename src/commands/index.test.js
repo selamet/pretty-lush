@@ -21,6 +21,8 @@ function makeActions() {
     openToolModal: vi.fn(),
     convert: vi.fn(),
     generateTypes: vi.fn(),
+    toggleSchema: vi.fn(),
+    generateSchema: vi.fn(),
   };
 }
 
@@ -45,7 +47,7 @@ describe("buildCommands", () => {
     for (const c of commands) expect(typeof c.run).toBe("function");
   });
 
-  it("keeps the palette order: core, languages, themes, tools, converters, typegen", () => {
+  it("keeps the palette order: core, languages, themes, tools, converters, typegen, schema", () => {
     const { commands } = build();
     const core = ["format", "share", "clear", "diff", "compare", "fullscreen", "copy-output", "settings", "theme-flip", "lint-toggle"];
     expect(commands.slice(0, core.length).map((c) => c.id)).toEqual(core);
@@ -56,6 +58,8 @@ describe("buildCommands", () => {
       ...TEXT_TOOLS.map((t) => t.id),
       ...CONVERSIONS.map((c) => c.id),
       ...TYPEGEN_TARGETS.map((t) => `typegen-${t.id}`),
+      "schema-toggle",
+      "schema-generate",
     ]);
   });
 
@@ -196,5 +200,17 @@ describe("indent helpers", () => {
     for (const t of TYPEGEN_TARGETS) expect(byId[`typegen-${t.id}`].group).toBe("Generate types");
     byId["typegen-zod"].run();
     expect(actions.generateTypes).toHaveBeenCalledWith("zod");
+  });
+
+  it("adds JSON Schema commands whose toggle label follows the state", () => {
+    const off = build();
+    expect(off.byId["schema-toggle"].label).toBe("Validate JSON against a schema");
+    expect(off.byId["schema-generate"].label).toBe("Generate JSON Schema from JSON");
+    off.byId["schema-toggle"].run();
+    off.byId["schema-generate"].run();
+    expect(off.actions.toggleSchema).toHaveBeenCalledTimes(1);
+    expect(off.actions.generateSchema).toHaveBeenCalledTimes(1);
+    const on = build({ schemaOn: true });
+    expect(on.byId["schema-toggle"].label).toBe("Turn off JSON Schema validation");
   });
 });

@@ -24,11 +24,15 @@ import { TYPEGEN_TARGETS } from "../codegen/index.js";
  *   toggleFullscreen, copyOutput, openSettings, updateSettings(fn),
  *   selectLang(id), runTextUtil(label, fn), openToolModal(tool),
  *   convert({ from, to }) — data-format conversion of the current input,
- *   generateTypes(targetId) — show types generated from the JSON input
+ *   generateTypes(targetId) — show types generated from the JSON input,
+ *   toggleSchema() — JSON Schema validation panel on / off,
+ *   generateSchema() — replace the schema with one inferred from the input
+ * @param {boolean} [ctx.schemaOn]  schema validation currently shown
  */
 export function buildCommands({
   viewMode,
   outputFullscreen,
+  schemaOn = false,
   themeMode,
   settings,
   actions,
@@ -133,5 +137,20 @@ export function buildCommands({
       keywords: `generate types interface schema model codegen ${t.id} ${t.lang} json`,
       run: () => actions.generateTypes(t.id),
     })),
+    // JSON Schema validation of the JSON input (Schema panel).
+    {
+      id: "schema-toggle",
+      label: schemaOn ? "Turn off JSON Schema validation" : "Validate JSON against a schema",
+      group: "JSON Schema",
+      keywords: "json schema validate validation ajv draft-07 2020-12 errors",
+      run: () => actions.toggleSchema(),
+    },
+    {
+      id: "schema-generate",
+      label: "Generate JSON Schema from JSON",
+      group: "JSON Schema",
+      keywords: "json schema infer generate create from sample",
+      run: () => actions.generateSchema(),
+    },
   ];
 }

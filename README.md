@@ -62,6 +62,15 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 - A standalone two-snippet diff (A vs B) with its own pair of editors, live diff below, Swap and Clear actions
 - Both bodies persist across reloads
 
+**Regex tester**
+
+- **Regex** view (next to Format / Diff / Compare, or ⌘K → "Regex tester"): a `/pattern/flags` field with toggles for `d g i m s u v y`, a test-text editor seeded from the current input (**Use input** re-seeds it), a list of matches and a live **Replace** preview
+- Matches are highlighted in alternating colors and capture groups are underlined in per-group colors; the list shows each match's index, range and value plus its numbered / named groups (group ranges with `d`) — click a match to select it in the text
+- Replacement supports `$1`, `$<name>`, `$&`, `` $` ``, `$'` and `$$` (JavaScript `String#replace` semantics, first match only without `g`); copy the result with one click
+- Pasting a literal like `/\d+/gi` into the pattern field fills in the flags; invalid patterns show the engine's error inline under the field
+- Matching runs in a Web Worker with a 500 ms limit: a catastrophic pattern (e.g. `(a+)+$`) is stopped, the worker is replaced and "Pattern took too long (possible catastrophic backtracking)" is shown — the page never freezes. Results are capped at 10,000 matches
+- **Cheat sheet** popover with a quick reference of the syntax; click an entry to insert it. Pattern, flags and replacement persist across reloads
+
 **Text utilities (⌘K palette)**
 
 - Lines: Sort A→Z / Z→A, Dedupe, Reverse, Trim trailing whitespace, Collapse blank lines
@@ -219,7 +228,7 @@ pretty-lush/
 │   ├── components/                  # React UI, one component per file
 │   │   ├── TopBar · Toolbar · SettingsPopover · SuggestionBanner · StatusBar
 │   │   ├── Sidebar · RecentHistory   #   language list + recent formats
-│   │   ├── InputPane · OutputPane · DiffPane · ComparePanes
+│   │   ├── InputPane · OutputPane · DiffPane · ComparePanes · RegexPanes
 │   │   ├── CopyButton · DownloadButton · ImageButton · FullscreenButton · CopyMarkdownButton
 │   │   ├── ErrorCard · JsonTree · JsonTable · DiffView · CodeEditor · Resizer
 │   │   ├── CommandPalette · ShareDialog · JwtModal · ToolModalHost (tool-modal registry)
@@ -228,7 +237,7 @@ pretty-lush/
 │   │   ├── usePersistentState.js     #   useState mirrored to localStorage
 │   │   ├── useSettings.js            #   settings + theme chrome (data-theme, CSS vars)
 │   │   ├── useWorkspace.js           #   current language + per-language inputs
-│   │   ├── useHistory.js · useLayout.js · useCompareSnippets.js
+│   │   ├── useHistory.js · useLayout.js · useCompareSnippets.js · useRegexTester.js
 │   │   ├── useShare.js               #   share dialog, link creation, #s= / #p= loading
 │   │   └── useToast.js · useLanguageSuggestion.js · useFileDrop.js · useWindowKeydown.js
 │   ├── state/                       # pure persistence + domain logic (unit-tested)
@@ -237,6 +246,7 @@ pretty-lush/
 │   ├── convert/                     # data converters (JSON ↔ YAML ↔ TOML ↔ CSV, RFC 4180 CSV)
 │   ├── codegen/                     # JSON → TypeScript / Zod / Pydantic (schema inference + emitters)
 │   ├── schema/                      # JSON Schema validation (lazy Ajv), JSON pointer → source offset, schema generation
+│   ├── regex/                       # Regex tester: pure match model + worker protocol, worker runner with timeout, CodeMirror highlights
 │   ├── output/                      # pure output helpers (JSON tree model + search, JSONPath build / parse, table, filenames)
 │   ├── formatters/                  # one module per backend; index.js dispatches
 │   ├── languages/                   # registry, detection, sidebar groups, CodeMirror modes
@@ -261,6 +271,7 @@ State is stored in `localStorage` (keys live in `src/state/storage.js` and must 
 - `pretty-lush:history:v1` — recent format entries
 - `pretty-lush:layout:v1` — sidebar width + input/output split ratio
 - `pretty-lush:compare:v1` — Compare mode A / B bodies
+- `pretty-lush:regex:v1` — Regex tester pattern, flags and replacement
 - `pretty-lush:theme` — last applied light/dark mode (for chrome)
 
 ---

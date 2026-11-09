@@ -17,7 +17,7 @@ import { ID_KINDS } from "../text-utils/ids.js";
 
 /**
  * @param {object} ctx
- * @param {"split"|"diff"|"compare"} ctx.viewMode
+ * @param {"split"|"diff"|"compare"|"regex"} ctx.viewMode
  * @param {boolean} ctx.outputFullscreen
  * @param {"light"|"dark"} ctx.themeMode
  * @param {object} ctx.settings
@@ -69,6 +69,12 @@ export function buildCommands({
       label: "Compare two snippets (A vs B)",
       keywords: "diff",
       run: () => actions.setViewMode("compare"),
+    },
+    {
+      id: "regex",
+      label: "Regex tester",
+      keywords: "regular expression regexp pattern match test replace capture group",
+      run: () => actions.setViewMode("regex"),
     },
     {
       id: "fullscreen",

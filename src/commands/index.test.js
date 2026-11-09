@@ -52,7 +52,7 @@ describe("buildCommands", () => {
 
   it("keeps the palette order: core, languages, themes, tools, converters, typegen, schema", () => {
     const { commands } = build();
-    const core = ["format", "share", "clear", "diff", "compare", "fullscreen", "copy-output", "settings", "theme-flip", "lint-toggle"];
+    const core = ["format", "share", "clear", "diff", "compare", "regex", "fullscreen", "copy-output", "settings", "theme-flip", "lint-toggle"];
     expect(commands.slice(0, core.length).map((c) => c.id)).toEqual(core);
     expect(commands.map((c) => c.id)).toEqual([
       ...core,
@@ -112,6 +112,9 @@ describe("buildCommands", () => {
     expect(b.actions.setViewMode).toHaveBeenCalledWith("split");
     b.byId.compare.run();
     expect(b.actions.setViewMode).toHaveBeenCalledWith("compare");
+    expect(b.byId.regex.label).toBe("Regex tester");
+    b.byId.regex.run();
+    expect(b.actions.setViewMode).toHaveBeenCalledWith("regex");
   });
 
   it("wires language and theme commands", () => {

@@ -18,6 +18,7 @@ import Sidebar from "./components/Sidebar.jsx";
 import Resizer from "./components/Resizer.jsx";
 import DiffPane from "./components/DiffPane.jsx";
 import ComparePanes from "./components/ComparePanes.jsx";
+import RegexPanes from "./components/RegexPanes.jsx";
 import InputPane from "./components/InputPane.jsx";
 import OutputPane from "./components/OutputPane.jsx";
 import StatusBar from "./components/StatusBar.jsx";
@@ -46,6 +47,7 @@ import { useHistory } from "./hooks/useHistory.js";
 import { useLayout } from "./hooks/useLayout.js";
 import { useWorkspace } from "./hooks/useWorkspace.js";
 import { useCompareSnippets } from "./hooks/useCompareSnippets.js";
+import { useRegexTester } from "./hooks/useRegexTester.js";
 import { useToast } from "./hooks/useToast.js";
 import { useShare } from "./hooks/useShare.js";
 import { useLanguageSuggestion } from "./hooks/useLanguageSuggestion.js";
@@ -67,7 +69,7 @@ export default function App() {
   const [isFormatting, setIsFormatting] = useState(false);
   const { settings, setSettings, themeMeta } = useSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [viewMode, setViewMode] = useState("split"); // "split" | "diff" | "compare"
+  const [viewMode, setViewMode] = useState("split"); // "split" | "diff" | "compare" | "regex"
   const compare = useCompareSnippets();
   const [toast, setToast] = useToast();
   const { history, pushHistory, clearHistory } = useHistory();
@@ -97,6 +99,8 @@ export default function App() {
 
   const input = inputs[lang] ?? "";
   const currentLang = getLanguage(lang);
+  // Regex tester view: its test text is seeded from the input on first open.
+  const regex = useRegexTester({ active: viewMode === "regex", seed: input });
   // Ruff lint runs on its own debounce, never inside handleFormat.
   const lint = useRuffLint({
     enabled: settings.lint && lang === "python" && viewMode === "split",
@@ -650,7 +654,9 @@ export default function App() {
               ? "is-diff"
               : viewMode === "compare"
                 ? "is-compare"
-                : ""
+                : viewMode === "regex"
+                  ? "is-regex"
+                  : ""
           }`}
           style={{
             "--input-fr": `${layout.inputFr}fr`,
@@ -669,6 +675,12 @@ export default function App() {
               language={currentLang}
               theme={settings.editorTheme}
               {...compare}
+            />
+          ) : viewMode === "regex" ? (
+            <RegexPanes
+              theme={settings.editorTheme}
+              regex={regex}
+              seedAvailable={!!input}
             />
           ) : (
             <>

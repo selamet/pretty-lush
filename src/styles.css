@@ -3890,3 +3890,406 @@ button {
     padding: 0 7px;
   }
 }
+
+/* ── Regex tester view ── */
+.editor.is-regex {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.editor.is-regex .regex-main {
+  grid-column: 1;
+  grid-row: 1 / -1;
+}
+
+.editor.is-regex .regex-results {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.editor.is-regex .regex-replace {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.regex-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.regex-field {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-family: var(--mono);
+  font-size: 13px;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.regex-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.regex-field.is-invalid {
+  border-color: var(--warn);
+}
+
+.regex-field.is-invalid:focus-within {
+  box-shadow: 0 0 0 3px var(--warn-soft);
+}
+
+.regex-delim {
+  color: var(--muted);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.regex-flags-text {
+  color: var(--accent-text);
+}
+
+.regex-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0 2px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+}
+
+.regex-input::placeholder {
+  color: var(--muted);
+  font-family: var(--sans);
+  font-style: italic;
+}
+
+.regex-flags button {
+  min-width: 28px;
+  padding: 0 6px;
+}
+
+.regex-flags button:focus-visible,
+.regex-item-head:focus-visible,
+.regex-cheats button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.regex-message {
+  flex-basis: 100%;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.regex-message.is-error {
+  color: var(--warn);
+}
+
+.regex-message.is-notice {
+  color: var(--muted);
+}
+
+/* Matches / groups in the test editor. */
+.editor-host .cm-rx-match {
+  border-radius: 2px;
+}
+
+.editor-host .cm-rx-match.cm-rx-v0 {
+  background: var(--accent-soft);
+  box-shadow: inset 0 -1px 0 var(--accent);
+}
+
+.editor-host .cm-rx-match.cm-rx-v1 {
+  background: var(--warn-soft);
+  box-shadow: inset 0 -1px 0 var(--warn);
+}
+
+.editor-host .cm-rx-group {
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.editor-host .cm-rx-g0,
+.regex-group-label.g0 {
+  text-decoration-color: var(--syn-key);
+  --rx-group: var(--syn-key);
+}
+
+.editor-host .cm-rx-g1,
+.regex-group-label.g1 {
+  text-decoration-color: var(--syn-bool);
+  --rx-group: var(--syn-bool);
+}
+
+.editor-host .cm-rx-g2,
+.regex-group-label.g2 {
+  text-decoration-color: var(--syn-num);
+  --rx-group: var(--syn-num);
+}
+
+.editor-host .cm-rx-g3,
+.regex-group-label.g3 {
+  text-decoration-color: var(--syn-str);
+  --rx-group: var(--syn-str);
+}
+
+.editor-host .cm-rx-empty {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  margin: 0 -1px;
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
+.editor-host .cm-rx-empty.cm-rx-v1 {
+  background: var(--warn);
+}
+
+/* Results list. */
+.regex-list-host {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.regex-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.regex-item {
+  padding: 2px 8px 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.regex-item:last-child {
+  border-bottom: 0;
+}
+
+.regex-item-head {
+  appearance: none;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.regex-item-head:hover {
+  background: var(--surface-2);
+}
+
+.regex-idx {
+  flex: none;
+  min-width: 3.2em;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.regex-item.v1 .regex-idx {
+  color: var(--warn);
+}
+
+.regex-range {
+  flex: none;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.regex-val {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.regex-item-head .regex-val {
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--accent-soft);
+}
+
+.regex-item.v1 .regex-item-head .regex-val {
+  background: var(--warn-soft);
+}
+
+.regex-val.is-missing,
+.regex-item-head .regex-val.is-missing {
+  background: transparent;
+  color: var(--muted);
+  font-style: italic;
+  font-family: var(--sans);
+}
+
+.regex-clip {
+  color: var(--muted);
+}
+
+.regex-groups {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0 6px 0 calc(3.2em + 16px);
+  display: grid;
+  gap: 2px;
+}
+
+.regex-groups li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.regex-group-label {
+  flex: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--rx-group, var(--muted));
+  font-weight: 600;
+}
+
+.regex-group-label::before {
+  content: "";
+  align-self: center;
+  width: 8px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--rx-group, var(--muted));
+}
+
+.regex-group-name {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.regex-list-more {
+  padding: 8px 14px 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Cheat sheet popover. */
+.regex-cheats-wrap {
+  position: relative;
+}
+
+.popover.regex-cheats {
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(60vh, 460px);
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px 16px;
+}
+
+.regex-cheats-section h3 {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.regex-cheats-section ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.regex-cheats-section button {
+  appearance: none;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 4px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.regex-cheats-section button:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.regex-cheats-section code {
+  flex: none;
+  min-width: 5.5em;
+  color: var(--accent-text);
+  font-family: var(--mono);
+}
+
+@media (max-width: 720px) {
+  /* Stacked: the view scrolls instead of squeezing three panes. */
+  .editor.is-regex {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(380px, 1.4fr) minmax(240px, 1fr) minmax(240px, 1fr);
+    overflow-y: auto;
+  }
+
+  .editor.is-regex .regex-main,
+  .editor.is-regex .regex-results,
+  .editor.is-regex .regex-replace {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .regex-bar {
+    padding: 8px 10px;
+  }
+
+  .regex-flags {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+
+  .regex-flags button {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .popover.regex-cheats {
+    position: fixed;
+    top: 120px;
+    left: 16px;
+    right: 16px;
+    width: auto;
+  }
+}

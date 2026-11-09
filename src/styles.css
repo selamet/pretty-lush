@@ -2983,3 +2983,214 @@ button {
     display: none;
   }
 }
+
+/* ── Ruff lint: problems list + CodeMirror markers ── */
+.problems {
+  flex: none;
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 12px;
+}
+
+.problems-head {
+  appearance: none;
+  width: 100%;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.problems-head:hover .problems-title {
+  color: var(--ink);
+}
+
+.problems-head:focus-visible,
+.problem:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.problems-chevron {
+  flex: none;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+
+.problems.is-open .problems-chevron {
+  transform: rotate(90deg);
+}
+
+.problems-title {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+.problems-count {
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.problems-count.has-warnings {
+  background: var(--warn-soft);
+  border-color: var(--warn-border);
+  color: var(--warn);
+}
+
+.problems-count.has-errors {
+  background: var(--warn);
+  border-color: var(--warn);
+  color: var(--surface);
+}
+
+.problems-summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.problems-source {
+  order: 9;
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-text);
+}
+
+.problems-list {
+  max-height: min(136px, 30vh);
+  overflow: auto;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.problem {
+  appearance: none;
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 12px 4px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font-family: var(--sans);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.problem:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.problem-code {
+  min-width: 44px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--warn);
+}
+
+.problem-msg {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.problem-pos {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.editor-host .cm-editor .cm-lintRange-warning,
+.editor-host .cm-editor .cm-lintRange-error {
+  background-image: none;
+  text-decoration: underline wavy var(--warn);
+  text-decoration-thickness: 1px;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 3px;
+}
+
+.editor-host .cm-editor .cm-lintRange-error {
+  text-decoration-thickness: 1.5px;
+}
+
+.editor-host .cm-editor .cm-lintPoint::after {
+  border-bottom-color: var(--warn);
+}
+
+.editor-host .cm-editor .cm-tooltip.cm-tooltip-lint {
+  max-width: min(420px, 90vw);
+  padding: 4px 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+
+.editor-host .cm-editor .cm-diagnostic {
+  padding: 4px 12px 4px 10px;
+  border-left: 3px solid var(--warn);
+  margin-left: 0;
+}
+
+.editor-host .cm-editor .cm-diagnosticSource {
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--muted);
+  opacity: 1;
+}
+
+@media (max-width: 720px) {
+  /* stacked panes are short: keep ~2 rows so the editor stays usable */
+  .problems-head {
+    height: 30px;
+  }
+
+  .problems-list {
+    max-height: 56px;
+    padding: 2px 0;
+  }
+
+  .problem {
+    padding: 3px 12px;
+  }
+
+  .problems-source {
+    display: none;
+  }
+}

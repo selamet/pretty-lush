@@ -84,6 +84,12 @@ export function buildCommands({
           editorTheme: flipTheme(s.editorTheme),
         })),
     },
+    {
+      id: "lint-toggle",
+      label: settings?.lint ? "Turn off Python lint (Ruff)" : "Turn on Python lint (Ruff)",
+      keywords: "ruff check problems diagnostics flake8 python",
+      run: () => actions.updateSettings((s) => ({ ...s, lint: !s.lint })),
+    },
     ...LANGUAGES.map((l) => ({
       id: `lang-${l.id}`,
       label: l.label,

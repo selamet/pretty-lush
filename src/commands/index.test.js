@@ -43,7 +43,7 @@ describe("buildCommands", () => {
 
   it("keeps the palette order: core, languages, themes, tools", () => {
     const { commands } = build();
-    const core = ["format", "share", "clear", "diff", "compare", "fullscreen", "copy-output", "settings", "theme-flip"];
+    const core = ["format", "share", "clear", "diff", "compare", "fullscreen", "copy-output", "settings", "theme-flip", "lint-toggle"];
     expect(commands.slice(0, core.length).map((c) => c.id)).toEqual(core);
     expect(commands.map((c) => c.id)).toEqual([
       ...core,
@@ -101,6 +101,18 @@ describe("buildCommands", () => {
     byId["util-py-to-json"].run();
     const [, toJson] = actions.runTextUtil.mock.calls[1];
     expect(toJson("{'a': True}")).toBe('{\n    "a": true\n}\n');
+  });
+
+  it("toggles Ruff lint through updateSettings", () => {
+    const off = build({ settings: { lint: false } });
+    expect(off.byId["lint-toggle"].label).toBe("Turn on Python lint (Ruff)");
+    off.byId["lint-toggle"].run();
+    const update = off.actions.updateSettings.mock.calls[0][0];
+    expect(update({ lint: false, indent: 2 })).toEqual({ lint: true, indent: 2 });
+    expect(update({ lint: true })).toEqual({ lint: false });
+    expect(build({ settings: { lint: true } }).byId["lint-toggle"].label).toBe(
+      "Turn off Python lint (Ruff)"
+    );
   });
 
   it("opens tool modals for modal tools", () => {

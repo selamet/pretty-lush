@@ -1,7 +1,9 @@
+import { useRef } from "react";
 import CodeEditor from "./CodeEditor.jsx";
+import ProblemsPanel from "./ProblemsPanel.jsx";
 
 // Left pane of the "Format" view: the input editor, plus the JSONPath bar
-// when the language is JSON.
+// when the language is JSON and the Ruff problems list when lint is on.
 export default function InputPane({
   language,
   theme,
@@ -12,7 +14,9 @@ export default function InputPane({
   jsonPath,
   onJsonPathChange,
   onFormat,
+  lint = null,
 }) {
+  const viewRef = useRef(null);
   const inLines = input.split("\n").length;
   return (
     <div className="pane">
@@ -64,8 +68,27 @@ export default function InputPane({
           language={language.id}
           placeholder={`Paste ${language.label} here…`}
           errorLine={error?.line ?? null}
+          diagnostics={lint ? lint.diagnostics : null}
+          onViewReady={(view) => {
+            viewRef.current = view;
+          }}
         />
       </div>
+      {lint && (
+        <ProblemsPanel
+          lint={lint}
+          onJump={(d) => {
+            const view = viewRef.current;
+            if (!view) return;
+            const len = view.state.doc.length;
+            view.dispatch({
+              selection: { anchor: Math.min(d.from, len), head: Math.min(d.to, len) },
+              scrollIntoView: true,
+            });
+            view.focus();
+          }}
+        />
+      )}
     </div>
   );
 }

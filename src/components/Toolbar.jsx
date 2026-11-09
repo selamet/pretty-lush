@@ -120,6 +120,21 @@ export default function Toolbar({
           </span>
           Format as I type
         </button>
+        {lang === "python" && (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={!!settings.lint}
+            className="opt-switch"
+            onClick={() => setSettings((s) => ({ ...s, lint: !s.lint }))}
+            title="Show Ruff lint diagnostics in the input editor"
+          >
+            <span className={`switch ${settings.lint ? "on" : ""}`} aria-hidden="true">
+              <span className="knob" />
+            </span>
+            Lint
+          </button>
+        )}
       </div>
 
       <div className="toolbar-actions">

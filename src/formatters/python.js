@@ -56,3 +56,11 @@ export async function formatPython(src, opts) {
     throw mapRuffError(e);
   }
 }
+
+// Ruff linter on the same WASM module + Workspace used for formatting, so
+// enabling lint costs no extra download. Returns Ruff's raw diagnostics;
+// see src/lint/ruff-diagnostics.js for the CodeMirror mapping.
+export async function lintPython(src, opts) {
+  const ws = await getWorkspace(opts);
+  return ws.check(src);
+}

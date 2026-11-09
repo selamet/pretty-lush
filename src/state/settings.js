@@ -7,6 +7,8 @@ export const DEFAULT_SETTINGS = {
   editorTheme: "pretty-lush-light",
   autoFormat: false,
   formatOnPaste: false,
+  // Ruff lint diagnostics for Python (input editor + problems list).
+  lint: false,
 };
 
 const DARK_THEME = "pretty-lush-dark";

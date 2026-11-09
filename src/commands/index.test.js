@@ -3,6 +3,7 @@ import { buildCommands } from "./index.js";
 import { TEXT_TOOLS, jsonIndentFor, pythonIndentFor } from "./text-tools.js";
 import { LANGUAGES } from "../languages/registry.js";
 import { THEMES } from "../editor-themes.js";
+import { CONVERSIONS } from "../convert/index.js";
 
 function makeActions() {
   return {
@@ -17,6 +18,7 @@ function makeActions() {
     selectLang: vi.fn(),
     runTextUtil: vi.fn(),
     openToolModal: vi.fn(),
+    convert: vi.fn(),
   };
 }
 
@@ -41,7 +43,7 @@ describe("buildCommands", () => {
     for (const c of commands) expect(typeof c.run).toBe("function");
   });
 
-  it("keeps the palette order: core, languages, themes, tools", () => {
+  it("keeps the palette order: core, languages, themes, tools, converters", () => {
     const { commands } = build();
     const core = ["format", "share", "clear", "diff", "compare", "fullscreen", "copy-output", "settings", "theme-flip", "lint-toggle"];
     expect(commands.slice(0, core.length).map((c) => c.id)).toEqual(core);
@@ -50,6 +52,7 @@ describe("buildCommands", () => {
       ...LANGUAGES.map((l) => `lang-${l.id}`),
       ...THEMES.map((t) => `theme-${t.id}`),
       ...TEXT_TOOLS.map((t) => t.id),
+      ...CONVERSIONS.map((c) => c.id),
     ]);
   });
 
@@ -168,5 +171,17 @@ describe("indent helpers", () => {
     expect(pythonIndentFor(2)).toBe(2);
     expect(pythonIndentFor("tab")).toBe(4);
     expect(pythonIndentFor(undefined)).toBe(4);
+  });
+
+  it("adds a Convert command per direction that calls actions.convert", () => {
+    const { byId, actions } = build();
+    for (const id of ["json-yaml", "yaml-json", "json-toml", "toml-json", "json-csv", "csv-json"]) {
+      expect(byId[`convert-${id}`].group).toBe("Convert");
+    }
+    expect(byId["convert-json-csv"].label).toBe("Convert JSON → CSV");
+    byId["convert-csv-json"].run();
+    expect(actions.convert).toHaveBeenCalledWith(
+      expect.objectContaining({ from: "csv", to: "json" })
+    );
   });
 });

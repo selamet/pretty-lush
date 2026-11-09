@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import CodeEditor from "./CodeEditor.jsx";
 import CopyMarkdownButton from "./CopyMarkdownButton.jsx";
 import JsonTree from "./JsonTree.jsx";
@@ -8,12 +8,15 @@ import ImageButton from "./ImageButton.jsx";
 import DownloadButton from "./DownloadButton.jsx";
 import CopyButton from "./CopyButton.jsx";
 import FullscreenButton from "./FullscreenButton.jsx";
+import ConvertMenu from "./ConvertMenu.jsx";
 import { outputFilename } from "../output/filename.js";
+import { jsonToCsv } from "../convert/csv.js";
 
 const VIEW_LABELS = { tree: "Tree", code: "Code", table: "Table" };
 
 // Right pane of the "Format" view: formatted output (code / JSON tree /
-// JSON table), its export actions and the fullscreen toggle.
+// JSON table), the data-format Convert menu, export actions and the
+// fullscreen toggle.
 export default function OutputPane({
   language,
   theme,
@@ -26,8 +29,19 @@ export default function OutputPane({
   onUseJsonPath,
   fullscreen,
   onToggleFullscreen,
+  conversions = [],
+  onConvert,
+  convertDisabled,
 }) {
   const captureRef = useRef(null);
+  const tableCsv = useMemo(() => {
+    if (outputView !== "table" || !jsonTableData) return "";
+    try {
+      return jsonToCsv(jsonTableData.rows);
+    } catch {
+      return "";
+    }
+  }, [outputView, jsonTableData]);
   const outLines = output ? output.split("\n").length : 0;
   const views = [
     jsonTreeData && "tree",
@@ -57,6 +71,20 @@ export default function OutputPane({
               ))}
             </div>
           )}
+          {tableCsv && !error && (
+            <DownloadButton
+              text={tableCsv}
+              filename="table.csv"
+              label="CSV"
+              ariaLabel="Download table as CSV"
+              mime="text/csv"
+            />
+          )}
+          <ConvertMenu
+            conversions={conversions}
+            onConvert={onConvert}
+            disabled={convertDisabled}
+          />
           <ImageButton
             targetRef={captureRef}
             language={language.label}

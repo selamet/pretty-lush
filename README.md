@@ -11,7 +11,8 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 - **Ruff** — Python (black-compatible)
 - **sh-syntax** — Shell / Bash
 - **sql-formatter** — SQL (Postgres / MySQL / SQLite / BigQuery / …)
-- Built-in formatters — TOML, INI, Dockerfile, Dotenv
+- Built-in formatters — TOML, INI, CSV, Dockerfile, Dotenv
+- **yaml** · **smol-toml** — data converters (JSON ↔ YAML ↔ TOML ↔ CSV)
 
 ---
 
@@ -19,7 +20,7 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 
 **Formatter**
 
-- 19 languages out of the box: Python · JSON · YAML · TOML · XML / SVG · Shell · Dockerfile · JavaScript · TypeScript · JSX · TSX · Vue SFC · HTML · CSS · Markdown · GraphQL · SQL · INI · Dotenv
+- 20 languages out of the box: Python · JSON · YAML · TOML · CSV · XML / SVG · Shell · Dockerfile · JavaScript · TypeScript · JSX · TSX · Vue SFC · HTML · CSS · Markdown · GraphQL · SQL · INI · Dotenv
 - Auto-detect language from pasted content or dropped files
 - Drag-and-drop a file to load it (extension picks the language)
 - Side-by-side editor with syntax highlighting (CodeMirror 6)
@@ -32,7 +33,13 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 **JSON power tools**
 
 - **JSONPath filter** — type an expression (`$.items[*].id`, `$..name`) in the JSON pane and the formatted output is the matched values
-- **Table view** — when output is an array of objects, toggle between Code and a sticky-header table
+- **Table view** — when output is an array of objects, toggle between Code and a sticky-header table; **CSV** downloads the table as `table.csv`
+
+**Data converters**
+
+- **JSON ↔ YAML ↔ TOML ↔ CSV** — the **Convert** menu in the output pane (or ⌘K → "Convert JSON → YAML", …) converts the current input and switches the editor to the target language; the previous input is saved in Recent so you can go back with one click
+- CSV follows RFC 4180 (quoted commas, quotes and newlines); the header is the union of all object keys, nested values are written as JSON. CSV → JSON infers numbers, booleans and JSON objects/arrays conservatively (`007` stays a string)
+- Clear errors for data a target can't hold — e.g. CSV from a non-array, TOML from a top-level array or with `null` values
 
 **Compare mode**
 
@@ -209,6 +216,7 @@ pretty-lush/
 │   ├── state/                       # pure persistence + domain logic (unit-tested)
 │   │   ├── storage.js                #   STORAGE_KEYS + safe localStorage helpers
 │   │   └── settings.js · workspace.js · history.js · layout.js
+│   ├── convert/                     # data converters (JSON ↔ YAML ↔ TOML ↔ CSV, RFC 4180 CSV)
 │   ├── output/                      # pure output helpers (JSON tree / table, filenames)
 │   ├── formatters/                  # one module per backend; index.js dispatches
 │   ├── languages/                   # registry, detection, sidebar groups, CodeMirror modes

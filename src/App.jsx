@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatCode } from "./formatters/index.js";
+import { FORMAT_LABELS, conversionsFrom, convertData } from "./convert/index.js";
 import CommandPalette from "./components/CommandPalette.jsx";
 import ShareDialog, { PasswordPrompt } from "./components/ShareDialog.jsx";
 import ToolModalHost from "./components/ToolModalHost.jsx";
@@ -147,6 +148,54 @@ export default function App() {
     }
   }
 
+  // Converts the current input from one data format to another, switches the
+  // editor to the target language and puts the result in both panes. The
+  // source input (and any input the target language had) is pushed to the
+  // Recent history first, so the conversion can be undone from the sidebar.
+  async function handleConvert({ from, to }) {
+    if (!input.trim()) {
+      setToast({ kind: "warn", message: "Input is empty" });
+      return;
+    }
+    let result;
+    try {
+      result = await convertData(from, to, input, { indent: settings.indent });
+    } catch (e) {
+      setError({
+        title: "Couldn’t convert",
+        message: e.message,
+        line: e.line ?? null,
+        column: e.column ?? null,
+        hint: e.hint ?? null,
+      });
+      setOutput("");
+      return;
+    }
+    const remember = (l, text) => {
+      if (text && text.trim() && text.length <= MAX_HISTORY_ITEM) {
+        pushHistory(createHistoryEntry({ lang: l, input: text, output: text }));
+      }
+    };
+    const previousTarget = inputs[to];
+    if (previousTarget !== SAMPLES[to] && previousTarget !== result) {
+      remember(to, previousTarget);
+    }
+    remember(lang, input);
+    setLang(to);
+    setInputs((prev) => ({ ...prev, [to]: result }));
+    setOutput(result);
+    setError(null);
+    setSuggestion(null);
+    if (to !== "json") {
+      setJsonPath("");
+      setJsonView("code");
+    }
+    setToast({
+      kind: "ok",
+      message: `Converted ${FORMAT_LABELS[from]} → ${FORMAT_LABELS[to]} · previous input saved in Recent`,
+    });
+  }
+
   function restoreFromHistory(entry) {
     setLang(entry.lang);
     setInputs((prev) => ({ ...prev, [entry.lang]: entry.input }));
@@ -261,6 +310,7 @@ export default function App() {
       selectLang: handleSelectLang,
       runTextUtil,
       openToolModal,
+      convert: handleConvert,
     },
   });
 
@@ -429,6 +479,9 @@ export default function App() {
                 }}
                 fullscreen={outputFullscreen}
                 onToggleFullscreen={() => setOutputFullscreen((v) => !v)}
+                conversions={conversionsFrom(lang)}
+                onConvert={handleConvert}
+                convertDisabled={!input.trim()}
               />
             </>
           )}

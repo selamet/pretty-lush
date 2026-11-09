@@ -57,6 +57,7 @@ export const LANG_LOADERS = {
     legacy(() =>
       import("@codemirror/legacy-modes/mode/properties").then((m) => m.properties)
     ),
+  csv: () => legacy(() => import("./csv-mode.js").then((m) => m.csv)),
   dotenv: () =>
     legacy(() =>
       import("@codemirror/legacy-modes/mode/properties").then((m) => m.properties)

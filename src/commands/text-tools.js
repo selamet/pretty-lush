@@ -7,6 +7,13 @@ import {
   toUpperCase,
   toLowerCase,
   toTitleCase,
+  toCamelCase,
+  toPascalCase,
+  toSnakeCase,
+  toScreamingSnakeCase,
+  toKebabCase,
+  toDotCase,
+  toSentenceCase,
   base64Encode,
   base64Decode,
   urlEncode,
@@ -45,6 +52,10 @@ export function pythonIndentFor(indent) {
 //                        its input too (previous input saved in Recent);
 //                 view — force the JSON output view ("code"), e.g. so a
 //                        minified result isn't hidden behind the tree view.
+//               With `useSelection`, a non-empty selection in the input
+//               editor is transformed in place instead (each selection
+//               range separately, undoable with ⌘Z); `transform` must then
+//               return a string.
 //   modal     — `decode(input)` result is shown in the tool modal registered
 //               under that id in components/ToolModalHost.jsx;
 //               `emptyMessage` is shown when the input is empty. With
@@ -63,9 +74,17 @@ export const TEXT_TOOLS = [
   { id: "util-reverse", group: "Text", label: "Reverse line order", keywords: "flip", toast: "Reverse", transform: reverseLines },
   { id: "util-trim", group: "Text", label: "Trim trailing whitespace", keywords: "rtrim cleanup", toast: "Trim", transform: trimEachLine },
   { id: "util-collapse", group: "Text", label: "Collapse blank lines", keywords: "squeeze empty", toast: "Collapse blanks", transform: collapseBlankLines },
-  { id: "util-upper", group: "Text", label: "UPPERCASE", keywords: "case", toast: "Uppercase", transform: toUpperCase },
-  { id: "util-lower", group: "Text", label: "lowercase", keywords: "case", toast: "Lowercase", transform: toLowerCase },
-  { id: "util-title", group: "Text", label: "Title Case", keywords: "case", toast: "Title case", transform: toTitleCase },
+  // Case tools convert the selection in place when there is one.
+  { id: "util-upper", group: "Text", label: "UPPERCASE", keywords: "case", toast: "Uppercase", useSelection: true, transform: toUpperCase },
+  { id: "util-lower", group: "Text", label: "lowercase", keywords: "case", toast: "Lowercase", useSelection: true, transform: toLowerCase },
+  { id: "util-title", group: "Text", label: "Title Case", keywords: "case", toast: "Title case", useSelection: true, transform: toTitleCase },
+  { id: "util-sentence", group: "Text", label: "Sentence case", keywords: "case capitalize first letter", toast: "Sentence case", useSelection: true, transform: toSentenceCase },
+  { id: "util-camel", group: "Text", label: "camelCase", keywords: "case identifier variable camel lower", toast: "camelCase", useSelection: true, transform: toCamelCase },
+  { id: "util-pascal", group: "Text", label: "PascalCase", keywords: "case identifier class upper camel", toast: "PascalCase", useSelection: true, transform: toPascalCase },
+  { id: "util-snake", group: "Text", label: "snake_case", keywords: "case identifier underscore python", toast: "snake_case", useSelection: true, transform: toSnakeCase },
+  { id: "util-screaming-snake", group: "Text", label: "SCREAMING_SNAKE_CASE", keywords: "case identifier constant upper underscore env", toast: "SCREAMING_SNAKE_CASE", useSelection: true, transform: toScreamingSnakeCase },
+  { id: "util-kebab", group: "Text", label: "kebab-case", keywords: "case identifier dash hyphen slug css", toast: "kebab-case", useSelection: true, transform: toKebabCase },
+  { id: "util-dot", group: "Text", label: "dot.case", keywords: "case identifier dot period namespace", toast: "dot.case", useSelection: true, transform: toDotCase },
   // ── encoding ──────────────────────────────────────
   { id: "util-b64-enc", group: "Encode", label: "Base64 encode", keywords: "encode", toast: "Base64 encode", transform: base64Encode },
   { id: "util-b64-dec", group: "Encode", label: "Base64 decode", keywords: "decode", toast: "Base64 decode", transform: base64Decode },

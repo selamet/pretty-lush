@@ -24,7 +24,9 @@ import { ID_KINDS } from "../text-utils/ids.js";
  * @param {object} ctx.settings
  * @param {object} ctx.actions  format, share, clearInput, setViewMode,
  *   toggleFullscreen, copyOutput, openSettings, updateSettings(fn),
- *   selectLang(id), runTextUtil(label, fn), openToolModal(tool),
+ *   selectLang(id), runTextUtil(label, fn, { useSelection }) — with
+ *   useSelection, a non-empty input selection is transformed in place,
+ *   openToolModal(tool),
  *   convert({ from, to }) — data-format conversion of the current input,
  *   generateTypes(targetId) — show types generated from the JSON input,
  *   convertCurl(targetId) — show code converted from the cURL input,
@@ -130,7 +132,10 @@ export function buildCommands({
       keywords: tool.keywords,
       run: tool.modal
         ? () => actions.openToolModal(tool)
-        : () => actions.runTextUtil(tool.toast, (s) => tool.transform(s, settings)),
+        : () =>
+            actions.runTextUtil(tool.toast, (s) => tool.transform(s, settings), {
+              useSelection: Boolean(tool.useSelection),
+            }),
     })),
     // Data converters: the current input is read as `from`, whatever the
     // selected language, and the editor switches to `to`.

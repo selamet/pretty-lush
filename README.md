@@ -80,7 +80,7 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 **Text utilities (⌘K palette)**
 
 - Lines: Sort A→Z / Z→A, Dedupe, Reverse, Trim trailing whitespace, Collapse blank lines
-- Case: UPPERCASE · lowercase · Title Case
+- Case: UPPERCASE · lowercase · Title Case · Sentence case · camelCase · PascalCase · snake_case · SCREAMING_SNAKE_CASE · kebab-case · dot.case — each line is converted on its own (indentation kept); with a selection in the input editor, only the selection is converted, in place (⌘Z undoes it). Words are split at spaces, `_ - . /` and camel / Pascal boundaries, with acronyms and digits handled (`parseHTTPResponse` → `parse_http_response`, `XMLHttpRequest` → `xml-http-request`, `version2Update` → `version2_update`, `utf8` stays one word) and Unicode letters supported
 - Encoding: Base64 / URL percent / Hex — encode & decode in both directions
 - **JWT decoder** with a small modal showing header, payload, signature, issued/expires meta and an `expired` badge
 - Unix timestamp ↔ ISO date

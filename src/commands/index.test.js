@@ -150,6 +150,38 @@ describe("buildCommands", () => {
     expect(toJson("{'a': True}")).toBe('{\n    "a": true\n}\n');
   });
 
+  it("runs case tools on the selection, other transforms on the whole input", () => {
+    const { byId, actions } = build();
+    byId["util-snake"].run();
+    byId["util-upper"].run();
+    byId["util-b64-enc"].run();
+    const calls = actions.runTextUtil.mock.calls;
+    expect(calls[0][0]).toBe("snake_case");
+    expect(calls[0][1]("fooBar")).toBe("foo_bar");
+    expect(calls[0][2]).toEqual({ useSelection: true });
+    expect(calls[1][2]).toEqual({ useSelection: true });
+    expect(calls[2][2]).toEqual({ useSelection: false });
+  });
+
+  it("registers every case conversion", () => {
+    const { byId, actions } = build();
+    const cases = {
+      "util-camel": "userIdValue",
+      "util-pascal": "UserIdValue",
+      "util-snake": "user_id_value",
+      "util-screaming-snake": "USER_ID_VALUE",
+      "util-kebab": "user-id-value",
+      "util-dot": "user.id.value",
+      "util-sentence": "User id value",
+    };
+    for (const [id, expected] of Object.entries(cases)) {
+      expect(byId[id].group).toBe("Text");
+      byId[id].run();
+      const [, fn] = actions.runTextUtil.mock.calls.at(-1);
+      expect(fn("user ID_value")).toBe(expected);
+    }
+  });
+
   it("registers JSON minify / escape / unescape as palette transforms", () => {
     const { byId, actions } = build({ settings: { indent: 4 } });
     byId["util-json-minify"].run();

@@ -43,6 +43,7 @@ import { useShare } from "./hooks/useShare.js";
 import { useLanguageSuggestion } from "./hooks/useLanguageSuggestion.js";
 import { useFileDrop } from "./hooks/useFileDrop.js";
 import { useWindowKeydown } from "./hooks/useWindowKeydown.js";
+import { useRuffLint } from "./hooks/useRuffLint.js";
 
 // App shell: owns the formatting state (input → output / error) and wires
 // hooks (persisted state, sharing, detection) to the layout components.
@@ -69,6 +70,12 @@ export default function App() {
 
   const input = inputs[lang] ?? "";
   const currentLang = getLanguage(lang);
+  // Ruff lint runs on its own debounce, never inside handleFormat.
+  const lint = useRuffLint({
+    enabled: settings.lint && lang === "python" && viewMode === "split",
+    input,
+    settings,
+  });
 
   function setInput(text) {
     setInputs((prev) => ({ ...prev, [lang]: text }));
@@ -383,6 +390,7 @@ export default function App() {
                 jsonPath={jsonPath}
                 onJsonPathChange={setJsonPath}
                 onFormat={() => handleFormat()}
+                lint={lint}
               />
 
               <Resizer

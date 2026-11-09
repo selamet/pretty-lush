@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, Decoration, ViewPlugin, keymap } from "@codemirror/view";
 import { RangeSetBuilder, EditorSelection, Prec } from "@codemirror/state";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { getSearchQuery } from "@codemirror/search";
+import { linter, setDiagnostics } from "@codemirror/lint";
 import { tags as t } from "@lezer/highlight";
 import { getThemeMeta } from "../editor-themes.js";
 import { getLoadedLanguage, loadLanguage } from "../languages/codemirror.js";
@@ -359,6 +360,21 @@ function useExternalTheme(themeId) {
   return { meta, ext: loaded };
 }
 
+// Lint state without a lint source: diagnostics are pushed in from outside
+// (Ruff, see hooks/useRuffLint.js) with `setDiagnostics`. Kept as one stable
+// instance so re-renders don't reset the lint state; dropping it from the
+// extensions clears every marker.
+const externalLint = linter(null);
+
+// Pushes `diagnostics` into the editor whenever the array changes.
+function useExternalDiagnostics(viewRef, diagnostics) {
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view || !diagnostics) return;
+    view.dispatch(setDiagnostics(view.state, diagnostics));
+  }, [viewRef, diagnostics]);
+}
+
 export default function CodeEditor({
   value,
   onChange,
@@ -367,8 +383,12 @@ export default function CodeEditor({
   placeholder,
   theme = "pretty-lush-light",
   errorLine = null,
+  diagnostics = null,
+  onViewReady,
 }) {
   const { meta, ext: externalExt } = useExternalTheme(theme);
+  const viewRef = useRef(null);
+  useExternalDiagnostics(viewRef, diagnostics);
   const isDark = meta?.mode === "dark";
 
   const langExt = useLanguageExtension(language);
@@ -390,11 +410,18 @@ export default function CodeEditor({
   }
   if (langExt) extensions.push(langExt);
   if (errorLine) extensions.push(errorLineExtension(errorLine));
+  if (diagnostics) extensions.push(externalLint);
 
   return (
     <CodeMirror
       value={value}
       onChange={onChange}
+      onCreateEditor={(view) => {
+        viewRef.current = view;
+        // Late-created views still need the current diagnostics.
+        if (diagnostics) view.dispatch(setDiagnostics(view.state, diagnostics));
+        onViewReady?.(view);
+      }}
       extensions={extensions}
       readOnly={readOnly}
       placeholder={placeholder}

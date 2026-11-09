@@ -44,6 +44,14 @@ describe("loadSettings", () => {
     });
   });
 
+  it("keeps Ruff lint off by default and restores it when stored", () => {
+    expect(loadSettings(fakeStorage(), light).lint).toBe(false);
+    const storage = fakeStorage({
+      [STORAGE_KEYS.settings]: JSON.stringify({ lint: true }),
+    });
+    expect(loadSettings(storage, light).lint).toBe(true);
+  });
+
   it("stored editor theme wins over the migrated one", () => {
     const storage = fakeStorage({
       [STORAGE_KEYS.theme]: "dark",

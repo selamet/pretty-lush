@@ -27,6 +27,7 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 - Configurable indent (2 / 4 / tab), line width, quote style
 - Auto-format on type (debounced) and Format-on-paste options
 - Local format history (last 20, click to restore)
+- **Python lint (Ruff)** — optional "Lint" toggle (or ⌘K → "Turn on Python lint") shows Ruff diagnostics as inline markers plus a collapsible problems list (code, message, line:col; click to jump). Reuses the already-loaded Ruff WASM, no extra download; the setting persists
 
 **JSON power tools**
 

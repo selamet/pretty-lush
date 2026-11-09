@@ -4,6 +4,9 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  // Components (rendered by DOM tests) rely on the automatic JSX runtime,
+  // like @vitejs/plugin-react provides in the app build.
+  esbuild: { jsx: "automatic" },
   test: {
     environment: "node",
     include: ["src/**/*.test.{js,jsx}"],

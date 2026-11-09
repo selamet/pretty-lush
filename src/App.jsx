@@ -54,6 +54,7 @@ import { useCompareSnippets } from "./hooks/useCompareSnippets.js";
 import { useRegexTester } from "./hooks/useRegexTester.js";
 import { useToast } from "./hooks/useToast.js";
 import { useShare } from "./hooks/useShare.js";
+import { useFormatOnPaste } from "./hooks/useFormatOnPaste.js";
 import { useLanguageSuggestion } from "./hooks/useLanguageSuggestion.js";
 import { useCurlSuggestion } from "./hooks/useCurlSuggestion.js";
 import { useFileDrop } from "./hooks/useFileDrop.js";
@@ -686,18 +687,34 @@ export default function App() {
     setSuggestion(null);
   }
 
+  // Latest format started per tab: a slower, older format (e.g. auto-format
+  // of the text before a paste) must not overwrite a newer result.
+  const formatSeq = useRef({});
+
   // `jsonPathOverride` formats with that filter instead of the (possibly not
-  // yet re-rendered) `jsonPath` state. Resolves to true on success.
-  async function handleFormat({ silent = false, jsonPath: jsonPathOverride } = {}) {
+  // yet re-rendered) `jsonPath` state; `inputOverride` formats that text
+  // instead of the `input` of this render (format-on-paste passes the
+  // editor's new value, which isn't in state yet). Resolves to true on
+  // success.
+  async function handleFormat({
+    silent = false,
+    jsonPath: jsonPathOverride,
+    input: inputOverride,
+  } = {}) {
     if (isFormatting) return false;
     if (!silent) {
       setIsFormatting(true);
       closeTypegen();
       closeCurl();
     }
+    const source = inputOverride ?? input;
+    const tabId = ws.activeId;
+    const seq = (formatSeq.current[tabId] ?? 0) + 1;
+    formatSeq.current[tabId] = seq;
+    const superseded = () => formatSeq.current[tabId] !== seq;
     const filterExpr = lang === "json" ? (jsonPathOverride ?? jsonPath).trim() : "";
     try {
-      const result = await formatCode(lang, input, {
+      const result = await formatCode(lang, source, {
         ...settings,
         jsonPath: filterExpr || null,
       });
@@ -705,21 +722,22 @@ export default function App() {
       if (filterExpr) {
         let bases = [];
         try {
-          bases = await jsonPathResultBases(JSON.parse(input), filterExpr);
+          bases = await jsonPathResultBases(JSON.parse(source), filterExpr);
         } catch {
           // Paths in the tree then fall back to the filtered output.
         }
         filterInfo = { output: result, expression: filterExpr, bases };
       }
+      if (superseded()) return false;
       setOutputFilter(filterInfo);
       setOutput(result);
       setError(null);
-      if (!silent && input.length <= MAX_HISTORY_ITEM) {
-        pushHistory(createHistoryEntry({ lang, input, output: result }));
+      if (!silent && source.length <= MAX_HISTORY_ITEM) {
+        pushHistory(createHistoryEntry({ lang, input: source, output: result }));
       }
       return true;
     } catch (e) {
-      if (silent) {
+      if (silent || superseded()) {
         // suppress error during auto-format typing — keep last good output
         return false;
       }
@@ -763,10 +781,21 @@ export default function App() {
     handleFormat();
   });
 
+  // Format-on-paste formats the editor's new value right away (see
+  // hooks/useFormatOnPaste.js); auto-format then skips that same content.
+  const formatKey = `${ws.activeId}|${lang}|${formatSettingsKey}|${lang === "json" ? jsonPath : ""}`;
+  const pasteFormat = useFormatOnPaste({
+    enabled: settings.formatOnPaste,
+    setInput,
+    format: handleFormat,
+    formatKey,
+  });
+
   useEffect(() => {
     if (!settings.autoFormat) return;
     if (!input.trim()) return;
     const t = setTimeout(() => {
+      if (pasteFormat.takePasteFormatted(input, formatKey)) return;
       handleFormat({ silent: true });
     }, 800);
     return () => clearTimeout(t);
@@ -1161,13 +1190,8 @@ export default function App() {
                 language={currentLang}
                 theme={settings.editorTheme}
                 input={input}
-                onInputChange={setInput}
+                onInputChange={pasteFormat.onInputChange}
                 error={error}
-                onPaste={() => {
-                  if (settings.formatOnPaste) {
-                    setTimeout(() => handleFormat({ silent: true }), 0);
-                  }
-                }}
                 jsonPath={jsonPath}
                 onJsonPathChange={setJsonPath}
                 onFormat={() => handleFormat()}

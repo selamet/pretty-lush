@@ -16,7 +16,6 @@ export default function InputPane({
   input,
   onInputChange,
   error,
-  onPaste,
   jsonPath,
   onJsonPathChange,
   onFormat,
@@ -104,7 +103,7 @@ export default function InputPane({
           )}
         </div>
       )}
-      <div className="editor-host" onPaste={onPaste} onFocus={onEditorFocus}>
+      <div className="editor-host" onFocus={onEditorFocus}>
         <CodeEditor
           key={editorKey}
           theme={theme}

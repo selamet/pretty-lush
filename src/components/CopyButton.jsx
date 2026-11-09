@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export default function CopyButton({ text }) {
+export default function CopyButton({ text, label = "Copy output" }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export default function CopyButton({ text }) {
       className="copy-btn"
       onClick={handleCopy}
       disabled={!text}
-      aria-label="Copy output"
+      aria-label={label}
     >
       {copied ? (
         <>

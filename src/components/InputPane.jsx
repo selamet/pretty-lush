@@ -23,6 +23,8 @@ export default function InputPane({
   lint = null,
   schema = null,
   onSchemaToggle,
+  onViewReady,
+  onEditorFocus,
 }) {
   const viewRef = useRef(null);
   const inLines = input.split("\n").length;
@@ -99,7 +101,7 @@ export default function InputPane({
           )}
         </div>
       )}
-      <div className="editor-host" onPaste={onPaste}>
+      <div className="editor-host" onPaste={onPaste} onFocus={onEditorFocus}>
         <CodeEditor
           theme={theme}
           value={input}
@@ -110,6 +112,7 @@ export default function InputPane({
           diagnostics={lint ? lint.diagnostics : schema ? schema.validation.diagnostics : null}
           onViewReady={(view) => {
             viewRef.current = view;
+            onViewReady?.(view);
           }}
         />
       </div>

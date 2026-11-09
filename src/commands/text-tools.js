@@ -46,7 +46,10 @@ export function pythonIndentFor(indent) {
 //                        minified result isn't hidden behind the tree view.
 //   modal     — `decode(input)` result is shown in the tool modal registered
 //               under that id in components/ToolModalHost.jsx;
-//               `emptyMessage` is shown when the input is empty.
+//               `emptyMessage` is shown when the input is empty. With
+//               `useSelection`, a non-empty selection in the input editor is
+//               used instead of the whole input; `decode(text, { source })`
+//               gets source "selection" or "input".
 //
 // Order here is the order in the palette.
 export const TEXT_TOOLS = [
@@ -75,6 +78,7 @@ export const TEXT_TOOLS = [
   { id: "util-json-escape", group: "JSON", label: "Escape to JSON string", keywords: "stringify quote embed env literal", toast: "Escape", transform: escapeJsonString },
   { id: "util-json-unescape", group: "JSON", label: "Unescape JSON string", keywords: "unstringify parse double encoded literal unquote", toast: "Unescape", transform: (s, settings) => unescapeJsonString(s, { indent: settings.indent }) },
   // ── special ───────────────────────────────────────
+  { id: "util-hash", group: "Hash", label: "Hash input…", keywords: "md5 sha sha1 sha256 sha384 sha512 digest checksum selection", modal: "hash", useSelection: true, decode: (text, { source }) => ({ text, source }), emptyMessage: "Input is empty" },
   { id: "util-jwt", group: "Decode", label: "Decode JWT", keywords: "token jsonwebtoken", modal: "jwt", decode: decodeJwt, emptyMessage: "Paste a JWT first" },
   { id: "util-ts-iso", group: "Decode", label: "Unix timestamp → ISO date", keywords: "epoch time", toast: "Timestamp → ISO", transform: timestampToIso },
   { id: "util-iso-ts", group: "Decode", label: "ISO date → Unix timestamp", keywords: "epoch time", toast: "ISO → timestamp", transform: isoToTimestamp },

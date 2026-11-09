@@ -99,6 +99,7 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 - **Secret mode toggle** — shorter TTL default (1h), password recommended
 - **Self-destruct on read** — paste is deleted the moment the first viewer decrypts it
 - **Copy as PNG** with mac-style window chrome + watermark for nice Twitter / blog snippets
+- **Bookmarklet: format code from any page** — the bookmark icon in the top bar (or ⌘K → "Install bookmarklet") has a draggable **Format in Pretty Lush** button. Select code on any page and click the bookmark: it opens here in a new tab with its language detected and already formatted. Nothing selected? It sends the focused text field (never password fields), or the page's only `<pre>` / `<code>` block, else opens an empty tab. It loads no script (works on pages with a strict CSP), the snippet travels in the URL fragment (`#s=`, same format as URL-only links), and selections over 1,000,000 characters are cut with a toast saying so. On mobile, use **Copy code** and paste it as a bookmark's URL
 - **Copy as Markdown code block** — wraps output in ``` ```lang ``` `` fences
 
 **Installable PWA**
@@ -274,6 +275,7 @@ pretty-lush/
 │   ├── formatters/                  # one module per backend; index.js dispatches
 │   ├── languages/                   # registry, detection, sidebar groups, CodeMirror modes
 │   ├── share/                       # AES-GCM crypto + URL-fragment encode / decode
+│   ├── bookmarklet/                 # bookmarklet builder (javascript: URL for an origin) + payload reader
 │   ├── seo/                         # landing pages: route table (routes.js) + build-time HTML / sitemap.xml generator (render.js)
 │   └── text-utils/                  # pure string transforms used by ⌘K tools
 ├── index.html                       # title / meta / OG / PWA tags

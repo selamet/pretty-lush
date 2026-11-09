@@ -7,6 +7,7 @@ import { convertCurl, getCurlTarget, looksLikeCurl } from "./curl/index.js";
 import CommandPalette from "./components/CommandPalette.jsx";
 import ShareDialog, { PasswordPrompt } from "./components/ShareDialog.jsx";
 import ImportConfigDialog from "./components/ImportConfigDialog.jsx";
+import BookmarkletDialog from "./components/BookmarkletDialog.jsx";
 import ToolModalHost from "./components/ToolModalHost.jsx";
 import Toast from "./components/Toast.jsx";
 import DropOverlay from "./components/DropOverlay.jsx";
@@ -27,7 +28,7 @@ import { TEXT_TOOLS } from "./commands/text-tools.js";
 import { flipTheme } from "./editor-themes.js";
 import { SAMPLES } from "./languages/registry.js";
 import { getLanguage } from "./languages/groups.js";
-import { detectLangFromFilename } from "./languages/detect.js";
+import { detectLangFromContent, detectLangFromFilename } from "./languages/detect.js";
 import { MAX_INPUT_BYTES } from "./state/workspace.js";
 import { MAX_TABS, isPristine } from "./state/tabs.js";
 import { MAX_HISTORY_ITEM, createHistoryEntry } from "./state/history.js";
@@ -105,6 +106,8 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const profiles = useProfiles(settings, setSettings);
   const [importOpen, setImportOpen] = useState(false);
+  const [bookmarkletOpen, setBookmarkletOpen] = useState(false);
+  const closeBookmarklet = useCallback(() => setBookmarkletOpen(false), []);
   // Changes whenever any option that shapes formatter output changes.
   const formatSettingsKey = FORMAT_SETTING_KEYS.map((k) => settings[k]).join("|");
   const [viewMode, setViewMode] = useState("split"); // "split" | "diff" | "compare" | "regex"
@@ -162,22 +165,62 @@ export default function App() {
     setInputs((prev) => ({ ...prev, [lang]: text }));
   }
 
+  // Opens a snippet (share link, bookmarklet) in a new tab, or in the
+  // active one when it is pristine. Returns true when a new tab was opened.
+  function openSnippetInTab(to, text) {
+    const reuse = isPristine(ws.activeTab);
+    if (!reuse && !ws.canAdd) {
+      // At the cap: load into the current tab, like before tabs existed.
+      setLang(to);
+      setInputs((prev) => ({ ...prev, [to]: text }));
+      setOutput("");
+      setError(null);
+      return false;
+    }
+    ws.dispatch({ type: "openSnippet", lang: to, input: text });
+    return !reuse;
+  }
+
+  // Format requested for a snippet that is not on screen yet: it runs once
+  // a render shows exactly this language and input (the tab it was opened
+  // in), so handleFormat reads that tab and its setters write to it.
+  const pendingFormat = useRef(null);
+
+  // Snippet sent by the bookmarklet: opened like a share link, in the
+  // detected language (else the current one), and formatted right away.
+  function openFromBookmarklet({ input: text, truncated }) {
+    leaveGlobalViews();
+    if (!text.trim()) {
+      if (!isPristine(ws.activeTab)) newTab();
+      setToast({
+        kind: "warn",
+        message: "Nothing was selected — select code on a page, then click the bookmarklet",
+      });
+      return;
+    }
+    const to = detectLangFromContent(text) || lang;
+    openSnippetInTab(to, text);
+    pendingFormat.current = { lang: to, input: text };
+    setToast(
+      truncated
+        ? {
+            kind: "warn",
+            message: "Selection was over 1,000,000 characters — only the first 1,000,000 were sent",
+            duration: 8000,
+          }
+        : { kind: "ok", message: `Opened from the bookmarklet as ${getLanguage(to).label}` }
+    );
+  }
+
   const share = useShare({
     lang,
     input,
     openSnippet: (to, text) => {
-      const reuse = isPristine(ws.activeTab);
-      if (!reuse && !ws.canAdd) {
-        // At the cap: load into the current tab, like before tabs existed.
-        setLang(to);
-        setInputs((prev) => ({ ...prev, [to]: text }));
-        setOutput("");
-        setError(null);
-        return;
+      if (openSnippetInTab(to, text)) {
+        setToast({ kind: "ok", message: "Shared snippet opened in a new tab" });
       }
-      ws.dispatch({ type: "openSnippet", lang: to, input: text });
-      if (!reuse) setToast({ kind: "ok", message: "Shared snippet opened in a new tab" });
     },
+    openBookmarklet: openFromBookmarklet,
     notify: setToast,
   });
   const { suggestion, setSuggestion, dismissSuggestion } =
@@ -268,7 +311,12 @@ export default function App() {
   // intercepted reliably, so tabs use Alt (matched by `code`, since Option
   // changes `key` on macOS). AltGr (Ctrl+Alt) is left alone for typing.
   const modalOpen =
-    paletteOpen || !!toolModal || importOpen || share.shareDialogOpen || !!share.pwPrompt;
+    paletteOpen ||
+    !!toolModal ||
+    importOpen ||
+    bookmarkletOpen ||
+    share.shareDialogOpen ||
+    !!share.pwPrompt;
   useWindowKeydown((e) => {
     if (e.defaultPrevented || modalOpen) return;
     if (e.ctrlKey && !e.metaKey && !e.altKey && e.key === "Tab") {
@@ -707,6 +755,14 @@ export default function App() {
     setTreeSearchRequested(true);
   }
 
+  // Runs a format requested by openFromBookmarklet once its tab is shown.
+  useEffect(() => {
+    const pending = pendingFormat.current;
+    if (!pending || pending.lang !== lang || pending.input !== input) return;
+    pendingFormat.current = null;
+    handleFormat();
+  });
+
   useEffect(() => {
     if (!settings.autoFormat) return;
     if (!input.trim()) return;
@@ -881,6 +937,7 @@ export default function App() {
       generateSchema: generateSchemaFromInput,
       searchTree: searchJsonTree,
       importConfig: () => setImportOpen(true),
+      openBookmarklet: () => setBookmarkletOpen(true),
       switchProfile: (name) => {
         profiles.switchTo(name);
         setToast({ kind: "ok", message: `Switched to profile "${name}"` });
@@ -943,6 +1000,11 @@ export default function App() {
         onApply={applyImportedConfig}
         activeProfile={profiles.active}
       />
+      <BookmarkletDialog
+        open={bookmarkletOpen}
+        onClose={closeBookmarklet}
+        onNotify={setToast}
+      />
       <ToolModalHost
         modal={toolModal}
         onClose={() => setToolModal(null)}
@@ -953,6 +1015,7 @@ export default function App() {
         themeMode={themeMeta.mode}
         onOpenPalette={() => setPaletteOpen(true)}
         onToggleTheme={toggleTheme}
+        onOpenAbout={() => setBookmarkletOpen(true)}
       />
 
       <Toolbar

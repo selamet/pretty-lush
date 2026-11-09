@@ -36,6 +36,7 @@ import { ID_KINDS } from "../text-utils/ids.js";
  *   insertText(text, label) — put generated text at the input cursor,
  *   openIdGenerator() — open the "Generate N IDs" modal,
  *   importConfig() — open the "Import formatter config" dialog,
+ *   openBookmarklet() — open the About / "Get the bookmarklet" dialog,
  *   switchProfile(name) — activate a settings profile,
  *   saveProfile() — open the settings popover's "save as profile" input,
  *   newTab(), closeTab(), reopenTab(), renameTab() — act on the active tab,
@@ -183,6 +184,12 @@ export function buildCommands({
       keywords: "snippet switch",
       run: () => actions.switchTab(t.id),
     })),
+    {
+      id: "bookmarklet",
+      label: "Install bookmarklet",
+      keywords: "about help bookmark format selection any page browser",
+      run: () => actions.openBookmarklet(),
+    },
     {
       id: "import-config",
       label: "Import formatter config…",

@@ -37,6 +37,7 @@ function makeActions() {
     renameTab: vi.fn(),
     switchTab: vi.fn(),
     cycleTab: vi.fn(),
+    openBookmarklet: vi.fn(),
   };
 }
 
@@ -97,6 +98,7 @@ describe("buildCommands", () => {
       "tab-close",
       "tab-reopen",
       "tab-rename",
+      "bookmarklet",
       "import-config",
       "profile-save",
       ...LANGUAGES.map((l) => `lang-${l.id}`),
@@ -391,5 +393,12 @@ describe("indent helpers", () => {
     expect(byId["tree-search"].label).toBe("Search JSON tree");
     byId["tree-search"].run();
     expect(actions.searchTree).toHaveBeenCalledTimes(1);
+  });
+
+  it("adds an Install bookmarklet command", () => {
+    const { byId, actions } = build();
+    expect(byId.bookmarklet.label).toBe("Install bookmarklet");
+    byId.bookmarklet.run();
+    expect(actions.openBookmarklet).toHaveBeenCalledTimes(1);
   });
 });

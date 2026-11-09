@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { encryptShare, decryptShare } from "../share/crypto.js";
 import { encodeShare, decodeShare } from "../share/url-share.js";
 import { isKnownLang } from "../state/workspace.js";
+import { readBookmarkletPayload } from "../bookmarklet/index.js";
 
 async function copyToClipboard(text) {
   try {
@@ -17,8 +18,10 @@ async function copyToClipboard(text) {
 // Creating: URL-only links (`#s=…`, snippet in the fragment) or encrypted
 // server pastes (`#p=<id>.<key>`). Loading: on mount, a `#s=` / `#p=` hash is
 // consumed and its snippet handed to `openSnippet(lang, input)` (App opens it
-// in a new tab), prompting for a password when the paste has one.
-export function useShare({ lang, input, openSnippet, notify }) {
+// in a new tab), prompting for a password when the paste has one. A `#s=`
+// link made by the bookmarklet (no language, `via: "bookmarklet"`) goes to
+// `openBookmarklet({ input, truncated })` instead.
+export function useShare({ lang, input, openSnippet, openBookmarklet, notify }) {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareBusy, setShareBusy] = useState(false);
   const [shareError, setShareError] = useState(null);
@@ -30,7 +33,10 @@ export function useShare({ lang, input, openSnippet, notify }) {
     if (hash.startsWith("#s=")) {
       const decoded = decodeShare(hash.slice(3));
       if (!decoded) return;
-      if (typeof decoded.input === "string") {
+      const fromBookmarklet = readBookmarkletPayload(decoded);
+      if (fromBookmarklet) {
+        openBookmarklet(fromBookmarklet);
+      } else if (typeof decoded.input === "string") {
         openSnippet(
           decoded.lang && isKnownLang(decoded.lang) ? decoded.lang : lang,
           decoded.input

@@ -6,7 +6,7 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { getSearchQuery } from "@codemirror/search";
 import { tags as t } from "@lezer/highlight";
 import { getThemeMeta } from "../editor-themes.js";
-import { LANG_MAP } from "../languages/codemirror.js";
+import { getLoadedLanguage, loadLanguage } from "../languages/codemirror.js";
 
 // Cmd/Ctrl+G — multi-cursor on every occurrence of:
 //   1. the current selection (if any), or
@@ -275,6 +275,55 @@ function errorLineExtension(line) {
   );
 }
 
+// Language packs are lazy-loaded (see languages/codemirror.js). The editor
+// renders right away as plain text and gains highlighting when the pack
+// resolves; already-loaded packs are returned synchronously so switching
+// back to a language never drops its highlighting.
+function useLanguageExtension(language) {
+  // The module-level cache is the source of truth; this state only forces a
+  // re-render once an async load completes.
+  const [, setLoadedId] = useState(null);
+
+  useEffect(() => {
+    if (getLoadedLanguage(language)) return;
+    let cancelled = false;
+    loadLanguage(language).then((ext) => {
+      if (!cancelled && ext) setLoadedId(language);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [language]);
+
+  return getLoadedLanguage(language);
+}
+
+// While an external theme is still downloading, paint the editor with that
+// theme's own background/foreground (from editor-themes.js metadata) instead
+// of the built-in Pretty Lush theme, so there is no light/dark flash.
+const _placeholderThemeCache = new Map();
+function placeholderTheme(meta) {
+  if (!_placeholderThemeCache.has(meta.id)) {
+    _placeholderThemeCache.set(
+      meta.id,
+      EditorView.theme(
+        {
+          "&": { backgroundColor: meta.bg, color: meta.fg },
+          ".cm-gutters": {
+            backgroundColor: meta.bg,
+            color: meta.muted,
+            border: "none",
+          },
+          ".cm-content": { caretColor: meta.accent },
+          ".cm-cursor": { borderLeftColor: meta.accent },
+        },
+        { dark: meta.mode === "dark" }
+      )
+    );
+  }
+  return _placeholderThemeCache.get(meta.id);
+}
+
 const _externalThemeCache = new Map();
 
 function useExternalTheme(themeId) {
@@ -322,11 +371,15 @@ export default function CodeEditor({
   const { meta, ext: externalExt } = useExternalTheme(theme);
   const isDark = meta?.mode === "dark";
 
-  const langExt = LANG_MAP[language];
+  const langExt = useLanguageExtension(language);
 
   const extensions = [multiCursorKeymap, matchCountPlugin];
   if (externalExt) {
     extensions.push(externalExt);
+    extensions.push(baseLayout);
+  } else if (meta && !meta.builtin) {
+    // External theme still loading — neutral stand-in in its own colors.
+    extensions.push(placeholderTheme(meta));
     extensions.push(baseLayout);
   } else {
     // built-in pretty-lush

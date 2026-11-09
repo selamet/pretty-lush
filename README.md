@@ -57,7 +57,8 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 
 **Installable PWA**
 
-- Works fully offline after first load — all formatters precached, including the ~10 MB Ruff WASM
+- Small install: the app shell, editor, language packs and themes are precached (~1 MB) on first visit
+- Formatters (Prettier plugins, Ruff WASM ≈10 MB, sh-syntax, sql-formatter) are cached on first use — after you've used a formatter once, it works offline too
 - iOS / Android "Add to Home Screen" treats it as a native app
 - Service worker is `NetworkOnly` for `/api/*` so encrypted snippets are never cached
 
@@ -86,7 +87,7 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 | Typography | Geist + Geist Mono (Google Fonts) |
 | Backend (optional) | Vercel Functions + Vercel KV / Upstash Redis |
 
-Initial JS bundle: ~310 KB gzipped. Heavy formatters (Ruff WASM ≈10 MB, sh-syntax) and the JSONPath / PNG-export libraries are lazy-loaded only when first used.
+Initial JS: ~212 KB gzipped (entry ~32 KB + long-lived `vendor-react` / `vendor-codemirror` chunks). CodeMirror language packs, editor themes, formatters (Prettier plugins, Ruff WASM ≈10 MB, sh-syntax, sql-formatter) and the JSONPath / PNG-export libraries are lazy-loaded only when first used. Formatter chunks are emitted as `fmt-*` and kept out of the service-worker precache; they are cached at runtime (CacheFirst) instead.
 
 ---
 
@@ -216,7 +217,7 @@ Common changes stay local:
 
 - **New palette command** — an input → output transform is one entry in `src/commands/text-tools.js` (`transform` + `toast`); any other command is one entry in `buildCommands` (`src/commands/index.js`) plus, if it needs new behaviour, a callback in the `actions` object App passes in.
 - **New tool modal** (e.g. a decoder that shows a dialog) — add the component in `src/components/`, register it in `TOOL_MODALS` in `ToolModalHost.jsx`, and add a `text-tools.js` entry with `modal`, `decode` and `emptyMessage`.
-- **New language** — write `src/formatters/<lang>.js`, add a case to `src/formatters/index.js`, and register the entry in `src/languages/registry.js` + `src/languages/codemirror.js`. The sidebar, mobile picker and palette pick it up automatically.
+- **New language** — write `src/formatters/<lang>.js`, add a case to `src/formatters/index.js`, and register the entry in `src/languages/registry.js` + a lazy loader in `src/languages/codemirror.js`. The sidebar, mobile picker and palette pick it up automatically.
 - **New persisted setting** — add the default to `DEFAULT_SETTINGS` in `src/state/settings.js`; stored settings are merged over defaults, so existing users get it too.
 
 State is stored in `localStorage` (keys live in `src/state/storage.js` and must never be renamed):

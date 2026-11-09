@@ -2,6 +2,38 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
+// Heavy formatter code is emitted under a stable `fmt-` prefix so the service
+// worker can leave it out of the install-time precache (see globIgnores) and
+// cache it at runtime on first use instead.
+const FORMATTER_CHUNKS = [
+  [/node_modules\/prettier\/plugins\/([\w-]+)/, (m) => `fmt-prettier-${m[1]}`],
+  [/node_modules\/prettier\/standalone/, () => "fmt-prettier"],
+  [/node_modules\/sql-formatter\//, () => "fmt-sql"],
+  [/node_modules\/sh-syntax\//, () => "fmt-shell"],
+  [/node_modules\/@astral-sh\/ruff-wasm-web\//, () => "fmt-ruff"],
+];
+
+// Long-lived vendor chunks: they change far less often than app code, so
+// returning visitors keep them cached across deploys.
+const VENDOR_CHUNKS = [
+  [/node_modules\/(react|react-dom|scheduler)\//, "vendor-react"],
+  [
+    /node_modules\/(@codemirror\/(state|view|language|commands|search|autocomplete|lint)|@uiw\/react-codemirror|@uiw\/codemirror-extensions-basic-setup|@lezer\/(common|highlight)|style-mod|w3c-keyname|crelt)\//,
+    "vendor-codemirror",
+  ],
+];
+
+function manualChunks(id) {
+  for (const [re, name] of FORMATTER_CHUNKS) {
+    const m = id.match(re);
+    if (m) return name(m);
+  }
+  for (const [re, name] of VENDOR_CHUNKS) {
+    if (re.test(id)) return name;
+  }
+  return undefined;
+}
+
 export default defineConfig({
   plugins: [
     react(),
@@ -28,12 +60,32 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,wasm,woff2}"],
-        // The Ruff and sh-syntax WASM bundles are ~10 MB and ~785 KB —
-        // bump the limit so they get precached for offline use.
-        maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
+        globPatterns: ["**/*.{js,css,html,svg,woff2}"],
+        // WASM (Ruff ~10 MB, sh-syntax ~785 KB) and the large formatter
+        // chunks are not precached on install; the "formatters" runtime
+        // cache below stores them on first use so they work offline after.
+        globIgnores: ["**/*.wasm", "**/fmt-*.js"],
+        maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
         navigateFallback: "/index.html",
         runtimeCaching: [
+          {
+            // Formatter chunks and WASM excluded from precache above. File
+            // names are content-hashed, so CacheFirst never serves stale code.
+            // (Inlined: workbox serializes this function into sw.js, so it
+            // must not reference outer-scope helpers.)
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin &&
+              /^\/assets\/(fmt-[\w-]+\.js|[\w.-]+\.wasm)$/.test(url.pathname),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "formatters",
+              expiration: {
+                maxEntries: 40,
+                maxAgeSeconds: 60 * 60 * 24 * 90,
+              },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
           {
             urlPattern: ({ url }) =>
               url.origin === "https://fonts.googleapis.com" ||
@@ -57,5 +109,10 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: { manualChunks },
+    },
+  },
   server: { port: 5173 },
 });

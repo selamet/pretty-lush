@@ -26,6 +26,7 @@ export default function Toolbar({
           { id: "split", label: "Format", title: "Side-by-side view" },
           { id: "diff", label: "Diff", title: "Diff input ↔ output", disabled: diffDisabled },
           { id: "compare", label: "Compare", title: "Compare two snippets" },
+          { id: "regex", label: "Regex", title: "Test a regular expression" },
         ].map((m) => (
           <button
             key={m.id}

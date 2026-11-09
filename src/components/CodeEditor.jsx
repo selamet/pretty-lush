@@ -385,6 +385,8 @@ export default function CodeEditor({
   errorLine = null,
   diagnostics = null,
   onViewReady,
+  // Extra CodeMirror extensions (keep the identity stable across renders).
+  extraExtensions = null,
 }) {
   const { meta, ext: externalExt } = useExternalTheme(theme);
   const viewRef = useRef(null);
@@ -411,6 +413,7 @@ export default function CodeEditor({
   if (langExt) extensions.push(langExt);
   if (errorLine) extensions.push(errorLineExtension(errorLine));
   if (diagnostics) extensions.push(externalLint);
+  if (extraExtensions) extensions.push(extraExtensions);
 
   return (
     <CodeMirror

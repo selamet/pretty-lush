@@ -16,6 +16,7 @@ describe("loadSettings", () => {
       history: "pretty-lush:history:v1",
       compare: "pretty-lush:compare:v1",
       schema: "pretty-lush:schema:v1",
+      regex: "pretty-lush:regex:v1",
     });
   });
 

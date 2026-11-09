@@ -12,6 +12,7 @@ import { LANGUAGES } from "../languages/registry.js";
 import { THEMES, flipTheme } from "../editor-themes.js";
 import { TEXT_TOOLS } from "./text-tools.js";
 import { CONVERSIONS } from "../convert/index.js";
+import { TYPEGEN_TARGETS } from "../codegen/index.js";
 
 /**
  * @param {object} ctx
@@ -22,7 +23,8 @@ import { CONVERSIONS } from "../convert/index.js";
  * @param {object} ctx.actions  format, share, clearInput, setViewMode,
  *   toggleFullscreen, copyOutput, openSettings, updateSettings(fn),
  *   selectLang(id), runTextUtil(label, fn), openToolModal(tool),
- *   convert({ from, to }) — data-format conversion of the current input
+ *   convert({ from, to }) — data-format conversion of the current input,
+ *   generateTypes(targetId) — show types generated from the JSON input
  */
 export function buildCommands({
   viewMode,
@@ -122,6 +124,14 @@ export function buildCommands({
       group: "Convert",
       keywords: `convert ${c.from} ${c.to} data`,
       run: () => actions.convert(c),
+    })),
+    // Type generation from the JSON input, one entry per target.
+    ...TYPEGEN_TARGETS.map((t) => ({
+      id: `typegen-${t.id}`,
+      label: `Generate ${t.label} ${t.noun} from JSON`,
+      group: "Generate types",
+      keywords: `generate types interface schema model codegen ${t.id} ${t.lang} json`,
+      run: () => actions.generateTypes(t.id),
     })),
   ];
 }

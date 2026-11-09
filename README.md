@@ -41,6 +41,12 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 - CSV follows RFC 4180 (quoted commas, quotes and newlines); the header is the union of all object keys, nested values are written as JSON. CSV → JSON infers numbers, booleans and JSON objects/arrays conservatively (`007` stays a string)
 - Clear errors for data a target can't hold — e.g. CSV from a non-array, TOML from a top-level array or with `null` values
 
+**Generate types from JSON**
+
+- **TypeScript · Zod · Pydantic v2** — the **Types** button in the JSON output pane (or ⌘K → "Generate Zod schema from JSON", …) shows code generated from the JSON input, with a TS / Zod / Pydantic switcher and a root type name; copy, download (`types.ts` / `schema.ts` / `models.py`) and image export work on it, and ⌘⏎ or × goes back to the formatted output
+- Shapes are merged across array elements: keys missing in some elements become optional, `null` makes a field nullable, mixed primitives become unions, ints vs floats are told apart (`int` / `float`, `z.number().int()`), ISO date-time strings become `datetime` in Pydantic
+- Nested objects become named types (`addresses: [...]` → `Address`), identical shapes share one type, name collisions are numbered; non-identifier keys are quoted (TS / Zod) or get `Field(alias=…)` (Pydantic)
+
 **Compare mode**
 
 - A standalone two-snippet diff (A vs B) with its own pair of editors, live diff below, Swap and Clear actions
@@ -217,6 +223,7 @@ pretty-lush/
 │   │   ├── storage.js                #   STORAGE_KEYS + safe localStorage helpers
 │   │   └── settings.js · workspace.js · history.js · layout.js
 │   ├── convert/                     # data converters (JSON ↔ YAML ↔ TOML ↔ CSV, RFC 4180 CSV)
+│   ├── codegen/                     # JSON → TypeScript / Zod / Pydantic (schema inference + emitters)
 │   ├── output/                      # pure output helpers (JSON tree / table, filenames)
 │   ├── formatters/                  # one module per backend; index.js dispatches
 │   ├── languages/                   # registry, detection, sidebar groups, CodeMirror modes

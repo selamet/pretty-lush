@@ -9,14 +9,20 @@ import DownloadButton from "./DownloadButton.jsx";
 import CopyButton from "./CopyButton.jsx";
 import FullscreenButton from "./FullscreenButton.jsx";
 import ConvertMenu from "./ConvertMenu.jsx";
+import TypegenBar from "./TypegenBar.jsx";
 import { outputFilename } from "../output/filename.js";
 import { jsonToCsv } from "../convert/csv.js";
+import { getTypegenTarget } from "../codegen/index.js";
 
 const VIEW_LABELS = { tree: "Tree", code: "Code", table: "Table" };
 
 // Right pane of the "Format" view: formatted output (code / JSON tree /
-// JSON table), the data-format Convert menu, export actions and the
-// fullscreen toggle.
+// JSON table), the data-format Convert menu, "Generate types" (JSON only),
+// export actions and the fullscreen toggle.
+//
+// While `typegen` is set ({ target, rootName, code, error }) the pane shows
+// the generated code instead of the formatted output; copy / download /
+// image act on it.
 export default function OutputPane({
   language,
   theme,
@@ -32,6 +38,10 @@ export default function OutputPane({
   conversions = [],
   onConvert,
   convertDisabled,
+  typegen = null,
+  typegenAvailable = false,
+  onTypegenToggle,
+  onTypegenChange,
 }) {
   const captureRef = useRef(null);
   const tableCsv = useMemo(() => {
@@ -42,7 +52,12 @@ export default function OutputPane({
       return "";
     }
   }, [outputView, jsonTableData]);
-  const outLines = output ? output.split("\n").length : 0;
+  const typegenTarget = typegen ? getTypegenTarget(typegen.target) : null;
+  const shownText = typegen ? typegen.code : output;
+  const shownError = typegen ? typegen.error : error;
+  const shownLang = typegen ? typegenTarget.lang : language.id;
+  const shownLabel = typegen ? typegenTarget.label : language.label;
+  const outLines = shownText ? shownText.split("\n").length : 0;
   const views = [
     jsonTreeData && "tree",
     "code",
@@ -52,10 +67,10 @@ export default function OutputPane({
   return (
     <div className={`pane ${fullscreen ? "is-fullscreen" : ""}`}>
       <div className="pane-head">
-        <span className="title">Output</span>
+        <span className="title">{typegen ? "Types" : "Output"}</span>
         <div className="pane-actions">
-          <span className="meta">{output ? `${outLines} lines` : "—"}</span>
-          {(jsonTreeData || jsonTableData) && !error && (
+          <span className="meta">{shownText ? `${outLines} lines` : "—"}</span>
+          {!typegen && (jsonTreeData || jsonTableData) && !error && (
             <div className="view-toggle small" role="tablist" aria-label="Output view">
               {views.map((v) => (
                 <button
@@ -71,7 +86,7 @@ export default function OutputPane({
               ))}
             </div>
           )}
-          {tableCsv && !error && (
+          {!typegen && tableCsv && !error && (
             <DownloadButton
               text={tableCsv}
               filename="table.csv"
@@ -80,24 +95,64 @@ export default function OutputPane({
               mime="text/csv"
             />
           )}
-          <ConvertMenu
-            conversions={conversions}
-            onConvert={onConvert}
-            disabled={convertDisabled}
-          />
+          {!typegen && (
+            <ConvertMenu
+              conversions={conversions}
+              onConvert={onConvert}
+              disabled={convertDisabled}
+            />
+          )}
+          {typegenAvailable && (
+            <button
+              type="button"
+              className={`copy-btn types-btn ${typegen ? "is-on" : ""}`}
+              aria-pressed={!!typegen}
+              aria-label="Generate types from JSON"
+              title={typegen ? "Back to formatted output" : "Generate TypeScript / Zod / Pydantic types"}
+              onClick={onTypegenToggle}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1" />
+                <path d="M16 21h1a2 2 0 0 0 2-2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1" />
+              </svg>
+              <span className="types-btn-text">Types</span>
+            </button>
+          )}
           <ImageButton
             targetRef={captureRef}
-            language={language.label}
-            disabled={!output || !!error}
+            language={shownLabel}
+            disabled={!shownText || !!shownError}
           />
-          <DownloadButton text={output} filename={outputFilename(language)} />
-          <CopyMarkdownButton text={output} lang={language.id} />
-          <CopyButton text={output} />
+          <DownloadButton
+            text={shownText}
+            filename={typegen ? typegenTarget.filename : outputFilename(language)}
+          />
+          <CopyMarkdownButton text={shownText} lang={shownLang} />
+          <CopyButton text={shownText} />
           <FullscreenButton active={fullscreen} onToggle={onToggleFullscreen} />
         </div>
       </div>
+      {typegen && (
+        <TypegenBar
+          target={typegen.target}
+          rootName={typegen.rootName}
+          onChange={onTypegenChange}
+          onClose={onTypegenToggle}
+        />
+      )}
       <div className="editor-host" ref={captureRef}>
-        {error ? (
+        {typegen ? (
+          typegen.error ? (
+            <ErrorCard error={typegen.error} language="JSON" />
+          ) : (
+            <CodeEditor
+              theme={theme}
+              value={typegen.code}
+              language={typegenTarget.lang}
+              readOnly
+            />
+          )
+        ) : error ? (
           <ErrorCard error={error} language={language.label} />
         ) : outputView === "tree" ? (
           <JsonTree key={output} data={jsonTreeData} onUsePath={onUseJsonPath} />

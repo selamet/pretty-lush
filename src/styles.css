@@ -3323,3 +3323,61 @@ button {
     gap: 4px;
   }
 }
+
+/* ── Generate types: output pane toggle + target / root-name bar ── */
+.types-btn.is-on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.types-btn.is-on:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+/* Shares .json-bar's look so it lines up with the JSONPath bar of the
+   input pane. */
+.typegen-bar {
+  flex: none;
+}
+
+.typegen-targets {
+  flex: none;
+}
+
+.typegen-root-label {
+  margin-left: 4px;
+}
+
+.typegen-root-input {
+  max-width: 240px;
+}
+
+@media (max-width: 720px) {
+  .types-btn .types-btn-text {
+    display: none;
+  }
+
+  .types-btn {
+    padding: 0 8px;
+  }
+
+  .typegen-root-label {
+    display: none;
+  }
+
+  .typegen-root-input {
+    max-width: none;
+  }
+}
+
+@container (max-width: 700px) {
+  .pane-actions .types-btn .types-btn-text {
+    display: none;
+  }
+
+  .pane-actions:has(.types-btn) .meta {
+    display: none;
+  }
+}

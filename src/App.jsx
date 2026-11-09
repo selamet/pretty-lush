@@ -366,17 +366,29 @@ export default function App() {
     setToast({ kind: "ok", message: `Appended ${label} to the input` });
   }
 
+  // Text of the input line under the cursor, or "" outside split view.
+  function inputCursorLine() {
+    const view = inputView();
+    if (!view) return "";
+    return view.state.doc.lineAt(view.state.selection.main.head).text;
+  }
+
   function openToolModal(tool) {
     const selection = tool.useSelection ? inputSelectionText() : "";
     const text = selection || input;
-    if (!text) {
+    if (!text && !tool.allowEmpty) {
       setToast({ kind: "warn", message: tool.emptyMessage });
       return;
     }
     try {
       setToolModal({
         id: tool.modal,
-        result: tool.decode(text, { source: selection ? "selection" : "input" }),
+        result: tool.decode(text, {
+          source: selection ? "selection" : "input",
+          selection,
+          cursorLine: inputCursorLine(),
+          input,
+        }),
       });
       setError(null);
     } catch (e) {

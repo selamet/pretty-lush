@@ -22,6 +22,7 @@ import {
   escapeJsonString,
   unescapeJsonString,
 } from "../text-utils/index.js";
+import { pickCronExpression } from "../cron/index.js";
 
 // Indent used by Python dict → JSON: never tabs, never zero.
 export function jsonIndentFor(indent) {
@@ -49,7 +50,9 @@ export function pythonIndentFor(indent) {
 //               `emptyMessage` is shown when the input is empty. With
 //               `useSelection`, a non-empty selection in the input editor is
 //               used instead of the whole input; `decode(text, { source })`
-//               gets source "selection" or "input".
+//               gets source "selection" or "input", plus `selection`,
+//               `cursorLine` (the input line under the cursor) and `input`.
+//               With `allowEmpty`, the modal also opens on an empty input.
 //
 // Order here is the order in the palette.
 export const TEXT_TOOLS = [
@@ -80,6 +83,7 @@ export const TEXT_TOOLS = [
   // ── special ───────────────────────────────────────
   { id: "util-hash", group: "Hash", label: "Hash input…", keywords: "md5 sha sha1 sha256 sha384 sha512 digest checksum selection", modal: "hash", useSelection: true, decode: (text, { source }) => ({ text, source }), emptyMessage: "Input is empty" },
   { id: "util-jwt", group: "Decode", label: "Decode JWT", keywords: "token jsonwebtoken", modal: "jwt", decode: decodeJwt, emptyMessage: "Paste a JWT first" },
+  { id: "util-cron", group: "Cron", label: "Explain cron expression", keywords: "crontab schedule next run times quartz job timer", modal: "cron", useSelection: true, allowEmpty: true, decode: (_text, ctx) => ({ expression: pickCronExpression(ctx) }) },
   { id: "util-ts-iso", group: "Decode", label: "Unix timestamp → ISO date", keywords: "epoch time", toast: "Timestamp → ISO", transform: timestampToIso },
   { id: "util-iso-ts", group: "Decode", label: "ISO date → Unix timestamp", keywords: "epoch time", toast: "ISO → timestamp", transform: isoToTimestamp },
 ];

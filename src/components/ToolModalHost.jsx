@@ -1,6 +1,7 @@
 import JwtModal from "./JwtModal.jsx";
 import HashModal from "./HashModal.jsx";
 import IdsModal from "./IdsModal.jsx";
+import CronModal from "./CronModal.jsx";
 
 // Registry of tool modals opened from ⌘K tools (see `modal` entries in
 // src/commands/text-tools.js, and "Generate N UUIDs…" in commands/index.js).
@@ -12,6 +13,7 @@ const TOOL_MODALS = {
   jwt: JwtModal,
   hash: HashModal,
   ids: IdsModal,
+  cron: CronModal,
 };
 
 // `modal` is `{ id, result }` or null.

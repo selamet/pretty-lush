@@ -1559,6 +1559,90 @@ button {
   color: var(--muted);
 }
 
+/* ── Hash / ID generator modals (reuse .jwt-dialog) ──── */
+.hash-dialog:focus {
+  outline: none;
+}
+
+.hash-source {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.hash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hash-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.hash-row .jwt-section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hash-insecure {
+  font-size: 10px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.hash-value {
+  display: block;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+  word-break: break-all;
+  min-height: calc(1.5em + 18px);
+  user-select: all;
+}
+
+.ids-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ids-controls .seg-toggle {
+  align-self: flex-end;
+}
+
+.ids-count {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 110px;
+}
+
+.ids-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.ids-list.jwt-section-body {
+  white-space: pre;
+  word-break: normal;
+}
+
 /* ── CodeMirror search panel (modernized) ────────────── */
 .cm-panels {
   background: transparent !important;

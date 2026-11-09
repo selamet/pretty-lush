@@ -13,6 +13,7 @@ import { THEMES, flipTheme } from "../editor-themes.js";
 import { TEXT_TOOLS } from "./text-tools.js";
 import { CONVERSIONS } from "../convert/index.js";
 import { TYPEGEN_TARGETS } from "../codegen/index.js";
+import { ID_KINDS } from "../text-utils/ids.js";
 
 /**
  * @param {object} ctx
@@ -27,7 +28,9 @@ import { TYPEGEN_TARGETS } from "../codegen/index.js";
  *   generateTypes(targetId) — show types generated from the JSON input,
  *   toggleSchema() — JSON Schema validation panel on / off,
  *   generateSchema() — replace the schema with one inferred from the input,
- *   searchTree() — focus the search box of the JSON tree view
+ *   searchTree() — focus the search box of the JSON tree view,
+ *   insertText(text, label) — put generated text at the input cursor,
+ *   openIdGenerator() — open the "Generate N IDs" modal
  * @param {boolean} [ctx.schemaOn]  schema validation currently shown
  */
 export function buildCommands({
@@ -159,6 +162,21 @@ export function buildCommands({
       group: "JSON",
       keywords: "find key value tree highlight jsonpath copy path filter",
       run: () => actions.searchTree(),
+    },
+    // Unique IDs inserted at the input cursor (or appended to the input).
+    ...ID_KINDS.map((k) => ({
+      id: `insert-${k.id}`,
+      label: `Insert ${k.label}`,
+      group: "Generate",
+      keywords: `${k.id} uuid ulid guid id unique random generate`,
+      run: () => actions.insertText(k.generate(), k.label),
+    })),
+    {
+      id: "generate-ids",
+      label: "Generate N UUIDs…",
+      group: "Generate",
+      keywords: "uuid v4 v7 ulid guid ids bulk many list generate",
+      run: () => actions.openIdGenerator(),
     },
   ];
 }

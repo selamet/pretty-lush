@@ -24,6 +24,8 @@ function makeActions() {
     toggleSchema: vi.fn(),
     generateSchema: vi.fn(),
     searchTree: vi.fn(),
+    insertText: vi.fn(),
+    openIdGenerator: vi.fn(),
   };
 }
 
@@ -62,7 +64,34 @@ describe("buildCommands", () => {
       "schema-toggle",
       "schema-generate",
       "tree-search",
+      "insert-uuidv4",
+      "insert-uuidv7",
+      "insert-ulid",
+      "generate-ids",
     ]);
+  });
+
+  it("wires hash and ID generator commands", () => {
+    const { byId, actions } = build();
+    expect(byId["util-hash"]).toMatchObject({ label: "Hash input…", group: "Hash" });
+    byId["util-hash"].run();
+    const tool = actions.openToolModal.mock.calls[0][0];
+    expect(tool).toMatchObject({ modal: "hash", useSelection: true });
+    expect(tool.decode("abc", { source: "selection" })).toEqual({ text: "abc", source: "selection" });
+
+    byId["insert-uuidv4"].run();
+    byId["insert-uuidv7"].run();
+    byId["insert-ulid"].run();
+    const [[v4, v4Label], [v7, v7Label], [ul, ulLabel]] = actions.insertText.mock.calls;
+    expect(v4).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(v4Label).toBe("UUID v4");
+    expect(v7).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(v7Label).toBe("UUID v7");
+    expect(ul).toMatch(/^[0-7][0-9A-HJKMNP-TV-Z]{25}$/);
+    expect(ulLabel).toBe("ULID");
+
+    byId["generate-ids"].run();
+    expect(actions.openIdGenerator).toHaveBeenCalled();
   });
 
   it("labels toggles from current state", () => {

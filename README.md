@@ -69,6 +69,8 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 - Encoding: Base64 / URL percent / Hex — encode & decode in both directions
 - **JWT decoder** with a small modal showing header, payload, signature, issued/expires meta and an `expired` badge
 - Unix timestamp ↔ ISO date
+- **Hash** — ⌘K → "Hash input…" shows MD5, SHA-1, SHA-256, SHA-384 and SHA-512 of the input (or just the selection) at once, over UTF-8 bytes, with a Hex / Base64 switch and a copy button per row. SHA via Web Crypto, MD5 in pure JS; MD5 / SHA-1 are marked insecure (checksums only)
+- **UUID / ULID** — ⌘K → "Insert UUID v4", "Insert UUID v7" or "Insert ULID" puts a fresh ID at the input cursor (replacing the selection; appended on a new line if the editor wasn't used). "Generate N UUIDs…" opens a small modal to pick v4 / v7 / ULID and a count (up to 1,000), then copy the list or insert it. UUID v7 follows RFC 9562; v7 and ULID are monotonic, so IDs sort in creation order even within the same millisecond
 - **Python ↔ JSON** — paste a `repr(dict)` or `print(dict)` output and convert to JSON (handles `True`/`False`/`None`, single-quoted strings, tuples, sets, hex / underscored ints, triple-quoted strings); JSON → Python emits a properly indented Python literal with single quotes
 
 **Sharing**

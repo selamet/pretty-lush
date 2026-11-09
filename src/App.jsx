@@ -82,6 +82,11 @@ export default function App() {
   const [treeSearchRequested, setTreeSearchRequested] = useState(false);
   const clearTreeSearchRequest = useCallback(() => setTreeSearchRequested(false), []);
   const [toolModal, setToolModal] = useState(null); // { id, result } | null
+  // Input editor (CodeMirror view) of the split view, for selection-aware
+  // tools and "insert at cursor". `inputEditorUsed` is set once the user
+  // focuses that editor, so its cursor is a place they actually chose.
+  const inputViewRef = useRef(null);
+  const inputEditorUsed = useRef(false);
   const [outputFullscreen, setOutputFullscreen] = useState(false);
   // "Generate types" mode of the output pane (JSON input only).
   const [typegen, setTypegen] = useState({
@@ -273,13 +278,52 @@ export default function App() {
     runTextUtil(tool.toast, (s) => tool.transform(s, settings));
   }
 
+  // The live input editor, or null outside split view (its view is destroyed).
+  function inputView() {
+    const view = inputViewRef.current;
+    return viewMode === "split" && view && !view.destroyed ? view : null;
+  }
+
+  // Text of the input editor's (main) selection, or "" when nothing is selected.
+  function inputSelectionText() {
+    const view = inputView();
+    if (!view) return "";
+    const { from, to } = view.state.selection.main;
+    return view.state.sliceDoc(from, to);
+  }
+
+  // Puts generated text (an ID, a list of IDs) into the input: at the cursor
+  // (replacing the selection) when the input editor has been used, else it
+  // replaces an empty input or is appended on a new line.
+  function insertIntoInput(text, label) {
+    const view = inputView();
+    if (view && inputEditorUsed.current) {
+      view.dispatch(view.state.replaceSelection(text));
+      view.focus();
+      setToast({ kind: "ok", message: `Inserted ${label}` });
+      return;
+    }
+    if (!input.trim()) {
+      setInput(text);
+      setToast({ kind: "ok", message: `Inserted ${label}` });
+      return;
+    }
+    setInput(input.endsWith("\n") ? input + text : `${input}\n${text}`);
+    setToast({ kind: "ok", message: `Appended ${label} to the input` });
+  }
+
   function openToolModal(tool) {
-    if (!input) {
+    const selection = tool.useSelection ? inputSelectionText() : "";
+    const text = selection || input;
+    if (!text) {
       setToast({ kind: "warn", message: tool.emptyMessage });
       return;
     }
     try {
-      setToolModal({ id: tool.modal, result: tool.decode(input) });
+      setToolModal({
+        id: tool.modal,
+        result: tool.decode(text, { source: selection ? "selection" : "input" }),
+      });
       setError(null);
     } catch (e) {
       setError({ message: e.message, line: null, column: null, hint: null });
@@ -501,6 +545,8 @@ export default function App() {
       selectLang: handleSelectLang,
       runTextUtil,
       openToolModal,
+      insertText: insertIntoInput,
+      openIdGenerator: () => setToolModal({ id: "ids", result: {} }),
       convert: handleConvert,
       generateTypes: openTypegen,
       toggleSchema,
@@ -536,7 +582,11 @@ export default function App() {
         onSubmit={share.submitPassword}
         onCancel={share.cancelPassword}
       />
-      <ToolModalHost modal={toolModal} onClose={() => setToolModal(null)} />
+      <ToolModalHost
+        modal={toolModal}
+        onClose={() => setToolModal(null)}
+        onInsert={insertIntoInput}
+      />
       <DropOverlay visible={isDragging} />
       <TopBar
         themeMode={themeMeta.mode}
@@ -648,6 +698,13 @@ export default function App() {
                     : null
                 }
                 onSchemaToggle={toggleSchema}
+                onViewReady={(view) => {
+                  inputViewRef.current = view;
+                  inputEditorUsed.current = view.hasFocus;
+                }}
+                onEditorFocus={() => {
+                  inputEditorUsed.current = true;
+                }}
               />
 
               <Resizer

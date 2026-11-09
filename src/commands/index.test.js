@@ -113,6 +113,22 @@ describe("buildCommands", () => {
     expect(toJson("{'a': True}")).toBe('{\n    "a": true\n}\n');
   });
 
+  it("registers JSON minify / escape / unescape as palette transforms", () => {
+    const { byId, actions } = build({ settings: { indent: 4 } });
+    byId["util-json-minify"].run();
+    byId["util-json-escape"].run();
+    byId["util-json-unescape"].run();
+    const [[minLabel, minify], [, escape], [, unescape]] = actions.runTextUtil.mock.calls;
+    expect(minLabel).toBe("Minify");
+    expect(minify('{ "a": [1, 2] }')).toEqual({ text: '{"a":[1,2]}', view: "code" });
+    expect(escape('{"a":1}')).toBe('"{\\"a\\":1}"');
+    expect(unescape('"{\\"a\\":1}"')).toEqual({
+      text: '{\n    "a": 1\n}\n',
+      lang: "json",
+      depth: 1,
+    });
+  });
+
   it("toggles Ruff lint through updateSettings", () => {
     const off = build({ settings: { lint: false } });
     expect(off.byId["lint-toggle"].label).toBe("Turn on Python lint (Ruff)");

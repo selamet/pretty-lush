@@ -2973,6 +2973,15 @@ button {
     flex-basis: 100%;
   }
 
+  /* Minify collapses to its icon so the actions row keeps one line. */
+  .toolbar .btn-minify {
+    padding: 0 11px;
+  }
+
+  .toolbar .btn-minify .btn-label {
+    display: none;
+  }
+
   .editor {
     padding: 8px;
     gap: 8px;

@@ -34,6 +34,8 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 
 - **JSONPath filter** — type an expression (`$.items[*].id`, `$..name`) in the JSON pane and the formatted output is the matched values
 - **Table view** — when output is an array of objects, toggle between Code and a sticky-header table; **CSV** downloads the table as `table.csv`
+- **Minify** — the toolbar button next to Format (or ⌘K → "Minify JSON") puts the JSON on one line, keeping key order and number literals exactly as written; it's a one-shot output transform, so Format-as-you-type won't re-indent it until you edit the input
+- **Escape / Unescape** — ⌘K → "Escape to JSON string" turns the whole input into one JSON string literal (for code or env vars); "Unescape JSON string" decodes a literal (quotes optional), unwraps double / triple-encoded JSON from logs, and when the result is JSON pretty-prints it and switches to JSON (previous input saved in Recent)
 
 **JSON Schema validation**
 

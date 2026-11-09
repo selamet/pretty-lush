@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { LANDING_PAGE_FILES, landingPagesPlugin } from "./src/seo/render.js";
 
 // Heavy formatter code is emitted under a stable `fmt-` prefix so the service
 // worker can leave it out of the install-time precache (see globIgnores) and
@@ -52,6 +53,9 @@ function manualChunks(id) {
 export default defineConfig({
   plugins: [
     react(),
+    // Pre-rendered landing pages (/json-formatter, /regex-tester, …) and
+    // sitemap.xml, generated from the route table in src/seo/routes.js.
+    landingPagesPlugin(),
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["og.svg"],
@@ -79,9 +83,15 @@ export default defineConfig({
         // WASM (Ruff ~10 MB, sh-syntax ~785 KB) and the large formatter
         // chunks are not precached on install; the "formatters" runtime
         // cache below stores them on first use so they work offline after.
-        globIgnores: ["**/*.wasm", "**/fmt-*.js"],
+        // Landing pages are not precached either: they only differ from
+        // index.html in their meta tags, and offline navigations to them
+        // fall back to /index.html, which reads location.pathname.
+        globIgnores: ["**/*.wasm", "**/fmt-*.js", ...LANDING_PAGE_FILES],
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
         navigateFallback: "/index.html",
+        // Opening the API, sitemap.xml or robots.txt directly must hit the
+        // network instead of getting the app shell.
+        navigateFallbackDenylist: [/^\/api\//, /\.(?:xml|txt)$/],
         runtimeCaching: [
           {
             // Formatter chunks and WASM excluded from precache above. File

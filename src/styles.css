@@ -2870,6 +2870,123 @@ button {
   flex-direction: column;
 }
 
+/* ── sidebar: popular tools (landing-page links) ── */
+.side-tools {
+  flex: none;
+}
+
+.side-tools-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;
+  cursor: pointer;
+  border-radius: 5px;
+  user-select: none;
+}
+
+.side-tools-summary::-webkit-details-marker {
+  display: none;
+}
+
+.side-tools-summary:hover {
+  color: var(--ink);
+}
+
+.side-tools-summary:focus-visible,
+.side-tool-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.side-tools-summary svg {
+  transition: transform 0.15s;
+}
+
+.side-tools[open] .side-tools-summary svg {
+  transform: rotate(180deg);
+}
+
+.side-tools-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.side-tool-link {
+  text-decoration: none;
+}
+
+/* ── pre-rendered landing content (replaced when the app mounts) ── */
+.seo-static {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 16px 64px;
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.seo-static-brand {
+  margin: 0 0 24px;
+  font-weight: 600;
+}
+
+.seo-static-brand a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.seo-static h1 {
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.seo-static h2 {
+  margin: 32px 0 8px;
+  color: var(--ink);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.seo-static dt {
+  margin-top: 12px;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.seo-static dd {
+  margin: 2px 0 0;
+}
+
+.seo-static ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seo-static a {
+  color: var(--accent);
+}
+
+.seo-static-note {
+  padding: 10px 12px;
+  border: 1px solid var(--warn-border);
+  border-radius: 8px;
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
 /* ── editor area: panes become cards ── */
 .editor {
   grid-template-columns:

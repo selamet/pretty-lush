@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { filterLanguageGroups } from "../languages/groups.js";
 import RecentHistory from "./RecentHistory.jsx";
+import PopularTools from "./PopularTools.jsx";
 
-// Left sidebar: filterable language list grouped by LANGUAGE_GROUPS, plus
-// the recent-format history.
+// Left sidebar: filterable language list grouped by LANGUAGE_GROUPS, the
+// "Popular tools" landing-page links and the recent-format history.
 export default function Sidebar({
   lang,
   onSelectLang,
+  onOpenRoute,
   history,
   onRestoreHistory,
   onClearHistory,
@@ -50,6 +52,8 @@ export default function Sidebar({
           </div>
         ))}
       </nav>
+
+      <PopularTools onOpenRoute={onOpenRoute} />
 
       <RecentHistory
         history={history}

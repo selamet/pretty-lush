@@ -1,8 +1,12 @@
 // Line-oriented transforms. Each takes a string and returns a string,
 // preserving the input's trailing-newline policy.
 
+// Split into lines, dropping the empty element produced by a trailing
+// newline so transforms never treat it as a real (blank) line.
 function splitLines(src) {
-  return src.replace(/\r\n?/g, "\n").split("\n");
+  const lines = src.replace(/\r\n?/g, "\n").split("\n");
+  if (lines.length > 1 && lines[lines.length - 1] === "") lines.pop();
+  return lines;
 }
 
 function joinLines(lines, trailing) {
@@ -45,10 +49,8 @@ export function dedupeLines(src, { keepBlank = true } = {}) {
 
 export function reverseLines(src) {
   const lines = splitLines(src);
-  const trailing = hasTrailingNl(src);
-  if (trailing && lines[lines.length - 1] === "") lines.pop();
   lines.reverse();
-  return joinLines(lines, trailing);
+  return joinLines(lines, hasTrailingNl(src));
 }
 
 export function trimEachLine(src) {
@@ -59,12 +61,11 @@ export function trimEachLine(src) {
 }
 
 export function collapseBlankLines(src) {
-  return splitLines(src)
-    .reduce((acc, l) => {
-      const lastBlank = acc.length > 0 && acc[acc.length - 1] === "";
-      if (l === "" && lastBlank) return acc;
-      acc.push(l);
-      return acc;
-    }, [])
-    .join("\n") + (hasTrailingNl(src) ? "\n" : "");
+  const lines = splitLines(src).reduce((acc, l) => {
+    const lastBlank = acc.length > 0 && acc[acc.length - 1] === "";
+    if (l === "" && lastBlank) return acc;
+    acc.push(l);
+    return acc;
+  }, []);
+  return joinLines(lines, hasTrailingNl(src));
 }

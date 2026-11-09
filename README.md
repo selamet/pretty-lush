@@ -106,6 +106,13 @@ npm run build
 npm run preview  # http://localhost:4173
 ```
 
+Tests (Vitest, unit tests live next to the module as `*.test.js`):
+
+```bash
+npm test             # single run, also runs in CI on every pull request
+npm run test:watch   # watch mode
+```
+
 The output of `npm run build` is a fully static site in `dist/` plus the `api/` functions — drop the whole project on Vercel for a one-click deploy, or take only `dist/` to any static host (Netlify, Cloudflare Pages, S3, GitHub Pages — without the encrypted-share endpoint).
 
 ### Optional: encrypted share backend
@@ -241,7 +248,7 @@ The optional **encrypted share link** is the only feature that talks to a backen
 
 ## Contributing
 
-Issues, language requests, formatter tweaks, theme PRs all welcome. The codebase is small (one App component, a handful of helpers) and intentionally has no test framework — keeping the loop tight matters more than coverage here. Run `npm run dev`, edit, refresh. Ship.
+Issues, language requests, formatter tweaks, theme PRs all welcome. The codebase is small (one App component, a handful of helpers). Pure modules (formatters, text utilities, language detection, URL share) have Vitest unit tests — add one next to any module you touch, run `npm test`, then `npm run dev`, edit, refresh. Ship.
 
 ---
 

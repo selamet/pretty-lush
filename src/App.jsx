@@ -6,6 +6,7 @@ import {
   generateTypes,
   getTypegenTarget,
 } from "./codegen/index.js";
+import { convertCurl, getCurlTarget, looksLikeCurl } from "./curl/index.js";
 import CommandPalette from "./components/CommandPalette.jsx";
 import ShareDialog, { PasswordPrompt } from "./components/ShareDialog.jsx";
 import ToolModalHost from "./components/ToolModalHost.jsx";
@@ -51,6 +52,7 @@ import { useRegexTester } from "./hooks/useRegexTester.js";
 import { useToast } from "./hooks/useToast.js";
 import { useShare } from "./hooks/useShare.js";
 import { useLanguageSuggestion } from "./hooks/useLanguageSuggestion.js";
+import { useCurlSuggestion } from "./hooks/useCurlSuggestion.js";
 import { useFileDrop } from "./hooks/useFileDrop.js";
 import { useWindowKeydown } from "./hooks/useWindowKeydown.js";
 import { useRuffLint } from "./hooks/useRuffLint.js";
@@ -96,6 +98,8 @@ export default function App() {
     target: "typescript",
     rootName: DEFAULT_ROOT_NAME,
   });
+  // "cURL → code" mode of the output pane (input is a cURL command).
+  const [curlState, setCurlState] = useState({ open: false, target: "fetch" });
 
   const input = inputs[lang] ?? "";
   const currentLang = getLanguage(lang);
@@ -189,6 +193,7 @@ export default function App() {
       return;
     }
     setViewMode("split");
+    closeCurl();
     setTypegen((t) => ({ ...t, open: true, target: target || t.target }));
     if (target) {
       setToast({ kind: "ok", message: `Generating ${getTypegenTarget(target).label} from JSON` });
@@ -197,6 +202,51 @@ export default function App() {
 
   function closeTypegen() {
     setTypegen((t) => (t.open ? { ...t, open: false } : t));
+  }
+
+  // cURL → fetch / axios / requests follows the input live, like types.
+  // Available whatever the selected language, as long as the input starts
+  // with `curl`.
+  const curlAvailable = looksLikeCurl(input);
+  const curlActive = curlState.open && curlAvailable && viewMode === "split";
+  const curlInput = useDeferredValue(input);
+  const curlView = useMemo(() => {
+    if (!curlActive) return null;
+    const view = { target: curlState.target, code: "", warnings: [], error: null };
+    try {
+      Object.assign(view, convertCurl(curlState.target, curlInput));
+    } catch (e) {
+      view.error = {
+        title: "Couldn’t convert the cURL command",
+        message: e.message,
+        line: null,
+        column: null,
+        hint: e.hint ?? null,
+      };
+    }
+    return view;
+  }, [curlActive, curlState.target, curlInput]);
+  const { curlSuggestion, dismissCurlSuggestion } = useCurlSuggestion(
+    input,
+    viewMode === "split" && !curlActive
+  );
+
+  function openCurl(target) {
+    if (!looksLikeCurl(input)) {
+      setToast({ kind: "warn", message: "Paste a cURL command first — it should start with “curl”" });
+      return;
+    }
+    setViewMode("split");
+    closeTypegen();
+    dismissCurlSuggestion();
+    setCurlState((c) => ({ ...c, open: true, target: target || c.target }));
+    if (target) {
+      setToast({ kind: "ok", message: `Converting cURL to ${getCurlTarget(target).label}` });
+    }
+  }
+
+  function closeCurl() {
+    setCurlState((c) => (c.open ? { ...c, open: false } : c));
   }
 
   function requireJson(what) {
@@ -407,6 +457,7 @@ export default function App() {
     if (!silent) {
       setIsFormatting(true);
       closeTypegen();
+      closeCurl();
     }
     const filterExpr = lang === "json" ? (jsonPathOverride ?? jsonPath).trim() : "";
     try {
@@ -541,7 +592,7 @@ export default function App() {
       setViewMode,
       toggleFullscreen: () => setOutputFullscreen((v) => !v),
       copyOutput: () => {
-        const text = typegenView ? typegenView.code : output;
+        const text = curlView ? curlView.code : typegenView ? typegenView.code : output;
         if (text) navigator.clipboard.writeText(text);
       },
       openSettings: () => setSettingsOpen(true),
@@ -553,6 +604,7 @@ export default function App() {
       openIdGenerator: () => setToolModal({ id: "ids", result: {} }),
       convert: handleConvert,
       generateTypes: openTypegen,
+      convertCurl: openCurl,
       toggleSchema,
       generateSchema: generateSchemaFromInput,
       searchTree: searchJsonTree,
@@ -615,14 +667,25 @@ export default function App() {
         isFormatting={isFormatting}
       />
 
-      <SuggestionBanner
-        suggestion={suggestion}
-        onAccept={() => {
-          handleSelectLang(suggestion.lang);
-          setSuggestion(null);
-        }}
-        onDismiss={dismissSuggestion}
-      />
+      {curlSuggestion ? (
+        <SuggestionBanner
+          suggestion={curlSuggestion}
+          actionLabel="Convert"
+          onAccept={() => openCurl()}
+          onDismiss={dismissCurlSuggestion}
+        >
+          Looks like a <b>cURL</b> command. Convert it to fetch, axios or Python requests?
+        </SuggestionBanner>
+      ) : (
+        <SuggestionBanner
+          suggestion={curlAvailable ? null : suggestion}
+          onAccept={() => {
+            handleSelectLang(suggestion.lang);
+            setSuggestion(null);
+          }}
+          onDismiss={dismissSuggestion}
+        />
+      )}
 
       <div
         className="workspace"
@@ -767,6 +830,10 @@ export default function App() {
                   typegenActive ? closeTypegen() : openTypegen()
                 }
                 onTypegenChange={(patch) => setTypegen((t) => ({ ...t, ...patch }))}
+                curl={curlView}
+                curlAvailable={curlAvailable}
+                onCurlToggle={() => (curlActive ? closeCurl() : openCurl())}
+                onCurlChange={(patch) => setCurlState((c) => ({ ...c, ...patch }))}
               />
             </>
           )}

@@ -49,6 +49,15 @@ async function pluginsFor(parser) {
         loadPlugin("typescript", () => import("prettier/plugins/typescript")),
         loadPlugin("estree", () => import("prettier/plugins/estree")),
       ]);
+    case "graphql":
+      return Promise.all([
+        loadPlugin("graphql", () => import("prettier/plugins/graphql")),
+      ]);
+    // XML / SVG: community plugin (@prettier/plugin-xml), pure JS.
+    case "xml":
+      return Promise.all([
+        loadPlugin("xml", () => import("@prettier/plugin-xml")),
+      ]);
     // Vue SFC: html handles <template>, babel/ts handle <script>, postcss handles <style>.
     case "vue":
       return Promise.all([
@@ -74,6 +83,10 @@ export async function formatWithPrettier(src, parser, opts) {
       useTabs,
       printWidth: Number(opts.lineWidth) || 80,
       singleQuote: opts.quotes === "single",
+      // XML only: reflow freely so minified XML / SVG gets one element per
+      // line (the plugin's "strict" default cannot add whitespace between
+      // tags). Other parsers ignore this option.
+      xmlWhitespaceSensitivity: "ignore",
     });
   } catch (e) {
     throw mapPrettierError(e);

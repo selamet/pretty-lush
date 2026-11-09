@@ -12,6 +12,8 @@ import { formatPython } from "./python.js";
 import { formatShell } from "./shell.js";
 import { formatDotenv } from "./dotenv.js";
 import { formatDockerfile } from "./dockerfile.js";
+import { formatToml } from "./toml.js";
+import { formatIni } from "./ini.js";
 import { formatWithPrettier } from "./prettier.js";
 
 export { FormatError } from "./errors.js";
@@ -37,6 +39,10 @@ export async function formatCode(lang, src, opts = {}) {
     case "python":     return formatPython(src, o);
     case "dotenv":     return formatDotenv(src, o);
     case "sql":        return formatSql(src, o);
+    case "xml":        return formatWithPrettier(src, "xml", o);
+    case "graphql":    return formatWithPrettier(src, "graphql", o);
+    case "toml":       return formatToml(src, o);
+    case "ini":        return formatIni(src, o);
     default:           return src;
   }
 }

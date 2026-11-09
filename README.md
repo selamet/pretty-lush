@@ -6,11 +6,12 @@ Live: **<https://pretty-lush.selamet.dev>**
 
 Powered by real formatters compiled to WebAssembly or pure JavaScript:
 
-- **Prettier** — JSON · YAML · Markdown · CSS · HTML · JavaScript · TypeScript · JSX · TSX · Vue SFC
+- **Prettier** — JSON · YAML · Markdown · CSS · HTML · JavaScript · TypeScript · JSX · TSX · Vue SFC · GraphQL
+- **@prettier/plugin-xml** — XML / SVG
 - **Ruff** — Python (black-compatible)
 - **sh-syntax** — Shell / Bash
 - **sql-formatter** — SQL (Postgres / MySQL / SQLite / BigQuery / …)
-- Built-in heuristics — Dockerfile, Dotenv
+- Built-in formatters — TOML, INI, Dockerfile, Dotenv
 
 ---
 
@@ -18,7 +19,7 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 
 **Formatter**
 
-- 15 languages out of the box: Python · JSON · YAML · Shell · Dockerfile · JavaScript · TypeScript · JSX · TSX · Vue SFC · HTML · CSS · Markdown · Dotenv · SQL
+- 19 languages out of the box: Python · JSON · YAML · TOML · XML / SVG · Shell · Dockerfile · JavaScript · TypeScript · JSX · TSX · Vue SFC · HTML · CSS · Markdown · GraphQL · SQL · INI · Dotenv
 - Auto-detect language from pasted content or dropped files
 - Drag-and-drop a file to load it (extension picks the language)
 - Side-by-side editor with syntax highlighting (CodeMirror 6)
@@ -79,7 +80,7 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 |---|---|
 | Build | Vite 5 + React 18 + `vite-plugin-pwa` |
 | Editor | CodeMirror 6 (`@uiw/react-codemirror`) |
-| Formatters | Prettier 3 standalone · `@astral-sh/ruff-wasm-web` · `sh-syntax` · `sql-formatter` |
+| Formatters | Prettier 3 standalone · `@prettier/plugin-xml` · `@astral-sh/ruff-wasm-web` · `sh-syntax` · `sql-formatter` |
 | Diff | `diff` (jsdiff) |
 | JSON queries | `jsonpath-plus` |
 | PNG export | `html-to-image` |
@@ -147,6 +148,10 @@ Everything runs client-side. Formatters are dynamically imported the first time 
 - **Python** boots a Ruff WebAssembly workspace (cached for subsequent calls).
 - **Shell** loads a small Go-WASM wrapper around `mvdan/sh`.
 - **SQL** loads `sql-formatter`, dialect-detected from the content.
+- **GraphQL** fetches Prettier's `graphql` plugin.
+- **XML / SVG** fetches `@prettier/plugin-xml` (whitespace-insensitive mode, so minified XML is expanded one element per line).
+- **TOML** uses an in-house tokenizer-based formatter: `key = value` / `[table]` spacing, spaced arrays and inline tables, multi-line arrays re-indented, string contents (incl. `"""` blocks) untouched, comments preserved. It reports unterminated strings / brackets with a line number.
+- **INI** normalizes `key = value` (and `key: value`) spacing and `[section]` headers, separates sections with one blank line, preserves `;` / `#` comments and re-indents multi-line value continuations.
 - **Dockerfile** uses an in-house heuristic (uppercase instructions, expand long `RUN … && …` chains, expand long `CMD` / `ENTRYPOINT` JSON arrays).
 - **Dotenv** normalizes `KEY = value` spacing, preserves quoted values and inline `#` comments outside quotes.
 

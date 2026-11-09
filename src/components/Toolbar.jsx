@@ -2,7 +2,7 @@ import { LANGUAGES } from "../languages/registry.js";
 import SettingsPopover from "./SettingsPopover.jsx";
 
 // Toolbar under the header: view-mode tabs, mobile language picker,
-// formatter options, "more options" popover, Share and Format.
+// formatter options, "more options" popover, Share, Minify (JSON) and Format.
 export default function Toolbar({
   viewMode,
   onViewModeChange,
@@ -16,6 +16,7 @@ export default function Toolbar({
   onShare,
   shareDisabled,
   onFormat,
+  onMinify,
   isFormatting,
 }) {
   return (
@@ -179,6 +180,23 @@ export default function Toolbar({
           </svg>
           Share
         </button>
+        {lang === "json" && (
+          <button
+            type="button"
+            className="btn btn-minify"
+            onClick={onMinify}
+            aria-label="Minify JSON"
+            title="Minify JSON to one line (one-shot; editing the input formats it again)"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="4 14 10 14 10 20" />
+              <polyline points="20 10 14 10 14 4" />
+              <line x1="14" y1="10" x2="21" y2="3" />
+              <line x1="3" y1="21" x2="10" y2="14" />
+            </svg>
+            <span className="btn-label">Minify</span>
+          </button>
+        )}
         <button
           className="btn-primary btn"
           onClick={onFormat}

@@ -22,6 +22,7 @@ import InputPane from "./components/InputPane.jsx";
 import OutputPane from "./components/OutputPane.jsx";
 import StatusBar from "./components/StatusBar.jsx";
 import { buildCommands } from "./commands/index.js";
+import { TEXT_TOOLS } from "./commands/text-tools.js";
 import { flipTheme } from "./editor-themes.js";
 import { SAMPLES } from "./languages/registry.js";
 import { getLanguage } from "./languages/groups.js";
@@ -220,20 +221,50 @@ export default function App() {
     setToast({ kind: "ok", message: "Schema generated from JSON" });
   }
 
+  // Runs a ⌘K text transform (src/commands/text-tools.js) on the input. A
+  // one-shot output transform: the output is not re-formatted until the
+  // input or settings change (auto-format only reacts to those).
   function runTextUtil(label, fn) {
     if (!input) {
       setToast({ kind: "warn", message: "Input is empty" });
       return;
     }
+    let result;
     try {
-      const result = fn(input);
-      setOutput(result);
-      setError(null);
-      setToast({ kind: "ok", message: `${label} applied` });
+      result = fn(input);
     } catch (e) {
-      setError({ message: e.message, line: null, column: null, hint: null });
+      setError({
+        message: e.message,
+        line: e.line ?? null,
+        column: e.column ?? null,
+        hint: e.hint ?? null,
+      });
       setOutput("");
+      return;
     }
+    const { text, lang: resultLang = null, view = null } =
+      typeof result === "string" ? { text: result } : result;
+    if (resultLang) {
+      adoptAsInput(resultLang, text);
+      if (resultLang !== lang) {
+        setToast({
+          kind: "ok",
+          message: `${label} applied · switched to ${getLanguage(resultLang).label} · previous input saved in Recent`,
+        });
+        return;
+      }
+    } else {
+      setOutput(text);
+      setError(null);
+    }
+    if (view) setJsonView(view);
+    setToast({ kind: "ok", message: `${label} applied` });
+  }
+
+  // Toolbar "Minify" (JSON): same one-shot transform as the ⌘K command.
+  function handleMinify() {
+    const tool = TEXT_TOOLS.find((t) => t.id === "util-json-minify");
+    runTextUtil(tool.toast, (s) => tool.transform(s, settings));
   }
 
   function openToolModal(tool) {
@@ -247,6 +278,32 @@ export default function App() {
     } catch (e) {
       setError({ message: e.message, line: null, column: null, hint: null });
       setOutput("");
+    }
+  }
+
+  // Switches the editor to `to` and puts `result` in both panes. The current
+  // input (and any input `to` had) is pushed to the Recent history first, so
+  // the change can be undone from the sidebar.
+  function adoptAsInput(to, result) {
+    const remember = (l, text) => {
+      if (text && text.trim() && text.length <= MAX_HISTORY_ITEM) {
+        pushHistory(createHistoryEntry({ lang: l, input: text, output: text }));
+      }
+    };
+    const previousTarget = inputs[to];
+    if (to !== lang && previousTarget !== SAMPLES[to] && previousTarget !== result) {
+      remember(to, previousTarget);
+    }
+    remember(lang, input);
+    closeTypegen();
+    setLang(to);
+    setInputs((prev) => ({ ...prev, [to]: result }));
+    setOutput(result);
+    setError(null);
+    setSuggestion(null);
+    if (to !== "json") {
+      setJsonPath("");
+      setJsonView("code");
     }
   }
 
@@ -273,26 +330,7 @@ export default function App() {
       setOutput("");
       return;
     }
-    const remember = (l, text) => {
-      if (text && text.trim() && text.length <= MAX_HISTORY_ITEM) {
-        pushHistory(createHistoryEntry({ lang: l, input: text, output: text }));
-      }
-    };
-    const previousTarget = inputs[to];
-    if (previousTarget !== SAMPLES[to] && previousTarget !== result) {
-      remember(to, previousTarget);
-    }
-    remember(lang, input);
-    closeTypegen();
-    setLang(to);
-    setInputs((prev) => ({ ...prev, [to]: result }));
-    setOutput(result);
-    setError(null);
-    setSuggestion(null);
-    if (to !== "json") {
-      setJsonPath("");
-      setJsonView("code");
-    }
+    adoptAsInput(to, result);
     setToast({
       kind: "ok",
       message: `Converted ${FORMAT_LABELS[from]} → ${FORMAT_LABELS[to]} · previous input saved in Recent`,
@@ -477,6 +515,7 @@ export default function App() {
         onShare={share.openShareDialog}
         shareDisabled={!input.trim()}
         onFormat={handleFormat}
+        onMinify={handleMinify}
         isFormatting={isFormatting}
       />
 

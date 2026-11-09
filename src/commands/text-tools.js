@@ -18,6 +18,9 @@ import {
   isoToTimestamp,
   pythonToJson,
   jsonToPython,
+  minifyJson,
+  escapeJsonString,
+  unescapeJsonString,
 } from "../text-utils/index.js";
 
 // Indent used by Python dict → JSON: never tabs, never zero.
@@ -33,7 +36,14 @@ export function pythonIndentFor(indent) {
 // Declarative ⌘K tools that act on the current input. Each entry is one of:
 //
 //   transform — `(input, settings) => output`. The result replaces the output
-//               pane and `toast` is shown ("<toast> applied").
+//               pane and `toast` is shown ("<toast> applied"). It is a
+//               one-shot output transform: auto-format only re-runs when the
+//               input or settings change. A transform may instead return
+//               `{ text, lang?, view? }`:
+//                 lang — switch the editor to that language and make `text`
+//                        its input too (previous input saved in Recent);
+//                 view — force the JSON output view ("code"), e.g. so a
+//                        minified result isn't hidden behind the tree view.
 //   modal     — `decode(input)` result is shown in the tool modal registered
 //               under that id in components/ToolModalHost.jsx;
 //               `emptyMessage` is shown when the input is empty.
@@ -60,6 +70,10 @@ export const TEXT_TOOLS = [
   // ── conversion ────────────────────────────────────
   { id: "util-py-to-json", group: "Convert", label: "Python dict → JSON", keywords: "repr literal true false none", toast: "Python → JSON", transform: (s, settings) => pythonToJson(s, { indent: jsonIndentFor(settings.indent) }) },
   { id: "util-json-to-py", group: "Convert", label: "JSON → Python dict", keywords: "literal true false none", toast: "JSON → Python", transform: (s, settings) => jsonToPython(s, { indent: pythonIndentFor(settings.indent) }) },
+  // ── JSON strings ──────────────────────────────────
+  { id: "util-json-minify", group: "JSON", label: "Minify JSON", keywords: "compact compress one line whitespace", toast: "Minify", transform: (s) => ({ text: minifyJson(s), view: "code" }) },
+  { id: "util-json-escape", group: "JSON", label: "Escape to JSON string", keywords: "stringify quote embed env literal", toast: "Escape", transform: escapeJsonString },
+  { id: "util-json-unescape", group: "JSON", label: "Unescape JSON string", keywords: "unstringify parse double encoded literal unquote", toast: "Unescape", transform: (s, settings) => unescapeJsonString(s, { indent: settings.indent }) },
   // ── special ───────────────────────────────────────
   { id: "util-jwt", group: "Decode", label: "Decode JWT", keywords: "token jsonwebtoken", modal: "jwt", decode: decodeJwt, emptyMessage: "Paste a JWT first" },
   { id: "util-ts-iso", group: "Decode", label: "Unix timestamp → ISO date", keywords: "epoch time", toast: "Timestamp → ISO", transform: timestampToIso },

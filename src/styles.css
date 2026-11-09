@@ -3194,3 +3194,132 @@ button {
     display: none;
   }
 }
+
+/* ── data converters: Convert menu (output pane head) ── */
+.convert-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.convert-btn .convert-caret {
+  margin-left: -2px;
+  color: var(--muted);
+  transition: transform 0.12s;
+}
+
+.convert-btn.is-open {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.convert-btn.is-open .convert-caret {
+  transform: rotate(180deg);
+}
+
+.convert-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  min-width: 184px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.02),
+    0 12px 32px -8px rgba(0, 0, 0, 0.18);
+}
+
+.convert-menu.align-left {
+  right: auto;
+  left: 0;
+}
+
+.convert-menu-label,
+.convert-menu-foot {
+  padding: 6px 8px 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.convert-menu-foot {
+  margin-top: 4px;
+  padding: 6px 8px 4px;
+  border-top: 1px solid var(--line);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.convert-item {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.convert-item:hover,
+.convert-item:focus-visible {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  outline: none;
+}
+
+.convert-item-ext {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.convert-item:hover .convert-item-ext,
+.convert-item:focus-visible .convert-item-ext {
+  color: var(--accent-text);
+}
+
+@media (max-width: 720px) {
+  /* keep the head on one line: Convert shrinks to icon + caret */
+  .convert-btn .convert-btn-text {
+    display: none;
+  }
+
+  .convert-btn {
+    gap: 4px;
+    padding: 0 8px;
+  }
+}
+
+/* Narrow output heads (side-by-side panes on laptop widths, table view with
+   the extra CSV action): drop the line count and the Convert label first so
+   every action stays visible without wrapping. */
+.pane-head {
+  container-type: inline-size;
+}
+
+@container (max-width: 700px) {
+  .pane-actions .convert-btn .convert-btn-text,
+  .pane-actions:has(.convert-wrap) .meta {
+    display: none;
+  }
+
+  .pane-actions .convert-btn {
+    gap: 4px;
+  }
+}

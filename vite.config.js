@@ -17,6 +17,9 @@ const FORMATTER_CHUNKS = [
   [/node_modules\/sql-formatter\//, () => "fmt-sql"],
   [/node_modules\/sh-syntax\//, () => "fmt-shell"],
   [/node_modules\/@astral-sh\/ruff-wasm-web\//, () => "fmt-ruff"],
+  // Data converters (src/convert/): YAML and TOML parser/stringifiers.
+  [/node_modules\/yaml\//, () => "fmt-yaml"],
+  [/node_modules\/smol-toml\//, () => "fmt-toml"],
 ];
 
 // Long-lived vendor chunks: they change far less often than app code, so

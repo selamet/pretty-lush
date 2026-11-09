@@ -11,6 +11,7 @@
 import { LANGUAGES } from "../languages/registry.js";
 import { THEMES, flipTheme } from "../editor-themes.js";
 import { TEXT_TOOLS } from "./text-tools.js";
+import { CONVERSIONS } from "../convert/index.js";
 
 /**
  * @param {object} ctx
@@ -20,7 +21,8 @@ import { TEXT_TOOLS } from "./text-tools.js";
  * @param {object} ctx.settings
  * @param {object} ctx.actions  format, share, clearInput, setViewMode,
  *   toggleFullscreen, copyOutput, openSettings, updateSettings(fn),
- *   selectLang(id), runTextUtil(label, fn), openToolModal(tool)
+ *   selectLang(id), runTextUtil(label, fn), openToolModal(tool),
+ *   convert({ from, to }) — data-format conversion of the current input
  */
 export function buildCommands({
   viewMode,
@@ -111,6 +113,15 @@ export function buildCommands({
       run: tool.modal
         ? () => actions.openToolModal(tool)
         : () => actions.runTextUtil(tool.toast, (s) => tool.transform(s, settings)),
+    })),
+    // Data converters: the current input is read as `from`, whatever the
+    // selected language, and the editor switches to `to`.
+    ...CONVERSIONS.map((c) => ({
+      id: c.id,
+      label: `Convert ${c.label}`,
+      group: "Convert",
+      keywords: `convert ${c.from} ${c.to} data`,
+      run: () => actions.convert(c),
     })),
   ];
 }

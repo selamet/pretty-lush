@@ -9,7 +9,7 @@ export default function ErrorCard({ error, language }) {
             <line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
         </span>
-        <span className="error-title">Couldn’t format</span>
+        <span className="error-title">{error.title || "Couldn’t format"}</span>
         <span className="error-lang">{language}</span>
       </div>
 

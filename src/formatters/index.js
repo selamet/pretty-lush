@@ -14,6 +14,7 @@ import { formatDotenv } from "./dotenv.js";
 import { formatDockerfile } from "./dockerfile.js";
 import { formatToml } from "./toml.js";
 import { formatIni } from "./ini.js";
+import { formatCsv } from "./csv.js";
 import { formatWithPrettier } from "./prettier.js";
 
 export { FormatError } from "./errors.js";
@@ -43,6 +44,7 @@ export async function formatCode(lang, src, opts = {}) {
     case "graphql":    return formatWithPrettier(src, "graphql", o);
     case "toml":       return formatToml(src, o);
     case "ini":        return formatIni(src, o);
+    case "csv":        return formatCsv(src);
     default:           return src;
   }
 }

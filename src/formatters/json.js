@@ -1,4 +1,5 @@
 import { FormatError } from "./errors.js";
+import { applyJsonPath } from "../output/json-filter.js";
 
 // JSON gets its own path (not Prettier) so we can:
 //   1. apply an optional JSONPath filter before re-serialising, and
@@ -10,10 +11,8 @@ export async function formatJson(src, opts) {
   try {
     let parsed = JSON.parse(src);
     if (opts.jsonPath && opts.jsonPath.trim()) {
-      const { JSONPath } = await import("jsonpath-plus");
       try {
-        const result = JSONPath({ path: opts.jsonPath.trim(), json: parsed });
-        parsed = result;
+        parsed = await applyJsonPath(parsed, opts.jsonPath);
       } catch (qe) {
         throw new FormatError(`Invalid JSONPath: ${qe.message || qe}`, {
           hint: "Examples: $.foo, $..name, $.items[*].id",

@@ -26,7 +26,8 @@ import { TYPEGEN_TARGETS } from "../codegen/index.js";
  *   convert({ from, to }) — data-format conversion of the current input,
  *   generateTypes(targetId) — show types generated from the JSON input,
  *   toggleSchema() — JSON Schema validation panel on / off,
- *   generateSchema() — replace the schema with one inferred from the input
+ *   generateSchema() — replace the schema with one inferred from the input,
+ *   searchTree() — focus the search box of the JSON tree view
  * @param {boolean} [ctx.schemaOn]  schema validation currently shown
  */
 export function buildCommands({
@@ -151,6 +152,13 @@ export function buildCommands({
       group: "JSON Schema",
       keywords: "json schema infer generate create from sample",
       run: () => actions.generateSchema(),
+    },
+    {
+      id: "tree-search",
+      label: "Search JSON tree",
+      group: "JSON",
+      keywords: "find key value tree highlight jsonpath copy path filter",
+      run: () => actions.searchTree(),
     },
   ];
 }

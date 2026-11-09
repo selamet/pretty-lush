@@ -33,6 +33,10 @@ export default function OutputPane({
   jsonTableData,
   onJsonViewChange,
   onUseJsonPath,
+  jsonTreeFilter = null,
+  onNotify,
+  treeSearchRequested = false,
+  onTreeSearchFocused,
   fullscreen,
   onToggleFullscreen,
   conversions = [],
@@ -155,7 +159,15 @@ export default function OutputPane({
         ) : error ? (
           <ErrorCard error={error} language={language.label} />
         ) : outputView === "tree" ? (
-          <JsonTree key={output} data={jsonTreeData} onUsePath={onUseJsonPath} />
+          <JsonTree
+            key={output}
+            data={jsonTreeData}
+            onUsePath={onUseJsonPath}
+            onNotify={onNotify}
+            filter={jsonTreeFilter}
+            focusSearch={treeSearchRequested}
+            onSearchFocused={onTreeSearchFocused}
+          />
         ) : outputView === "table" ? (
           <JsonTable rows={jsonTableData.rows} keys={jsonTableData.keys} />
         ) : (

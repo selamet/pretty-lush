@@ -23,6 +23,7 @@ function makeActions() {
     generateTypes: vi.fn(),
     toggleSchema: vi.fn(),
     generateSchema: vi.fn(),
+    searchTree: vi.fn(),
   };
 }
 
@@ -60,6 +61,7 @@ describe("buildCommands", () => {
       ...TYPEGEN_TARGETS.map((t) => `typegen-${t.id}`),
       "schema-toggle",
       "schema-generate",
+      "tree-search",
     ]);
   });
 
@@ -228,5 +230,12 @@ describe("indent helpers", () => {
     expect(off.actions.generateSchema).toHaveBeenCalledTimes(1);
     const on = build({ schemaOn: true });
     expect(on.byId["schema-toggle"].label).toBe("Turn off JSON Schema validation");
+  });
+
+  it("adds a JSON tree search command", () => {
+    const { byId, actions } = build();
+    expect(byId["tree-search"].label).toBe("Search JSON tree");
+    byId["tree-search"].run();
+    expect(actions.searchTree).toHaveBeenCalledTimes(1);
   });
 });

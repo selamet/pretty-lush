@@ -113,6 +113,7 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 - Resizable sidebar and input/output split (drag the dividers, layout persists)
 - Light / dark theme with 8 popular editor themes (GitHub · Dracula · One Dark · Tokyo Night · Solarized · …)
 - Works on mobile (sidebar collapses, panes stack)
+- **Landing pages** — every language and tool has its own URL (`/json-formatter`, `/python-formatter`, … `/json-to-typescript`, `/json-schema-validator`, `/jwt-decoder`, `/regex-tester`, `/curl-converter`, `/cron-explainer`). Each is pre-rendered at build time with its own title, description, canonical, Open Graph / Twitter tags, JSON-LD and a short crawlable intro + FAQ, and opens the app with that language / view / tool preselected (a `#s=` / `#p=` share link still wins). Switching language updates the URL and tab title; the sidebar's **Popular tools** links to the pages, and `sitemap.xml` lists them all
 
 ---
 
@@ -219,7 +220,7 @@ The ⌘K palette is the canonical surface — every formatter, theme, text utili
 
 ```
 pretty-lush/
-├── public/                          # static assets (og.svg, robots, sitemap)
+├── public/                          # static assets (og.svg, robots.txt)
 ├── api/                             # Vercel serverless functions
 │   ├── _store.js                    # KV / in-memory storage adapter
 │   ├── paste.js                     # POST — store encrypted paste
@@ -260,6 +261,7 @@ pretty-lush/
 │   ├── formatters/                  # one module per backend; index.js dispatches
 │   ├── languages/                   # registry, detection, sidebar groups, CodeMirror modes
 │   ├── share/                       # AES-GCM crypto + URL-fragment encode / decode
+│   ├── seo/                         # landing pages: route table (routes.js) + build-time HTML / sitemap.xml generator (render.js)
 │   └── text-utils/                  # pure string transforms used by ⌘K tools
 ├── index.html                       # title / meta / OG / PWA tags
 ├── vite.config.js                   # vite + react + PWA config
@@ -270,7 +272,8 @@ Common changes stay local:
 
 - **New palette command** — an input → output transform is one entry in `src/commands/text-tools.js` (`transform` + `toast`); any other command is one entry in `buildCommands` (`src/commands/index.js`) plus, if it needs new behaviour, a callback in the `actions` object App passes in.
 - **New tool modal** (e.g. a decoder that shows a dialog) — add the component in `src/components/`, register it in `TOOL_MODALS` in `ToolModalHost.jsx`, and add a `text-tools.js` entry with `modal`, `decode` and `emptyMessage` (or `allowEmpty`).
-- **New language** — write `src/formatters/<lang>.js`, add a case to `src/formatters/index.js`, and register the entry in `src/languages/registry.js` + a lazy loader in `src/languages/codemirror.js`. The sidebar, mobile picker and palette pick it up automatically.
+- **New language** — write `src/formatters/<lang>.js`, add a case to `src/formatters/index.js`, and register the entry in `src/languages/registry.js` + a lazy loader in `src/languages/codemirror.js`. The sidebar, mobile picker and palette pick it up automatically. Add its landing-page copy to `LANGUAGE_COPY` in `src/seo/routes.js` (a test fails until you do); the page and sitemap entry are generated at build.
+- **New landing page** — one entry in `TOOL_ROUTES` (`src/seo/routes.js`) with unique title / description / intro, plus a `case` for its `tool` in `applyLandingRoute` (`App.jsx`). `npm run build` writes `dist/<slug>/index.html` and the sitemap.
 - **New persisted setting** — add the default to `DEFAULT_SETTINGS` in `src/state/settings.js`; stored settings are merged over defaults, so existing users get it too.
 
 State is stored in `localStorage` (keys live in `src/state/storage.js` and must never be renamed):

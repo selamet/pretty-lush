@@ -60,6 +60,12 @@ import { useRuffLint } from "./hooks/useRuffLint.js";
 import { useSchemaState, useSchemaValidation } from "./hooks/useSchemaValidation.js";
 import { parseJsonText } from "./schema/validate.js";
 import { generateSchemaText } from "./schema/generate.js";
+import {
+  hasShareHash,
+  pathForLang,
+  routeForPath,
+  titleForLang,
+} from "./seo/routes.js";
 
 // App shell: owns the formatting state (input → output / error) and wires
 // hooks (persisted state, sharing, detection) to the layout components.
@@ -101,6 +107,12 @@ export default function App() {
   });
   // "cURL → code" mode of the output pane (input is a cURL command).
   const [curlState, setCurlState] = useState({ open: false, target: "fetch" });
+
+  // Landing page the app was opened on (/json-formatter, /regex-tester, …).
+  // A share link (#s= / #p=) wins: it picks its own language.
+  const [initialRoute] = useState(() =>
+    hasShareHash(window.location.hash) ? null : routeForPath(window.location.pathname)
+  );
 
   const input = inputs[lang] ?? "";
   const currentLang = getLanguage(lang);
@@ -585,6 +597,90 @@ export default function App() {
     }
   }
 
+  // Preselects what a landing route is about: its language, then its view or
+  // tool. Called once on mount and from the "Popular tools" links.
+  function applyLandingRoute(route) {
+    if (route.lang) handleSelectLang(route.lang);
+    if (route.kind === "language") setViewMode("split");
+    switch (route.tool) {
+      case "regex":
+        setViewMode("regex");
+        break;
+      case "typegen-typescript":
+        setViewMode("split");
+        closeCurl();
+        setTypegen((t) => ({ ...t, open: true, target: "typescript" }));
+        break;
+      case "schema":
+        setViewMode("split");
+        setSchemaState((s) => ({ ...s, open: true }));
+        break;
+      case "curl":
+        setViewMode("split");
+        closeTypegen();
+        setInputs((prev) =>
+          !prev.shell?.trim() || prev.shell === SAMPLES.shell
+            ? { ...prev, shell: route.sample }
+            : prev
+        );
+        setCurlState((c) => ({ ...c, open: true }));
+        break;
+      case "jwt": {
+        const tool = TEXT_TOOLS.find((t) => t.id === "util-jwt");
+        try {
+          setToolModal({ id: tool.modal, result: tool.decode(input) });
+        } catch {
+          setToast({ kind: "ok", message: "Paste a JWT into the input, then ⌘K → “Decode JWT”" });
+        }
+        break;
+      }
+      case "cron": {
+        const tool = TEXT_TOOLS.find((t) => t.id === "util-cron");
+        setToolModal({
+          id: tool.modal,
+          result: tool.decode(input, { source: "input", selection: "", cursorLine: "", input }),
+        });
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  // "Popular tools" link: same as opening that page, without a reload.
+  function openLandingRoute(route) {
+    window.history.replaceState(null, "", route.path);
+    document.title = route.title;
+    applyLandingRoute(route);
+  }
+
+  useEffect(() => {
+    if (!initialRoute) return;
+    document.title = initialRoute.title;
+    applyLandingRoute(initialRoute);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keeps the URL and title on the current language's landing page when the
+  // language changes (sidebar, palette, convert, share link…). A tool page
+  // for the same language (/json-to-typescript) is left as it is; the
+  // initial language is never rewritten, so `/` stays `/` on load.
+  const urlSyncReady = useRef(false);
+  useEffect(() => {
+    if (!urlSyncReady.current) {
+      urlSyncReady.current = true;
+      return;
+    }
+    const current = routeForPath(window.location.pathname);
+    if (current && current.lang === lang) return;
+    const path = pathForLang(lang);
+    if (path !== window.location.pathname) {
+      const { search, hash } = window.location;
+      window.history.replaceState(window.history.state, "", path + search + hash);
+    }
+    document.title = titleForLang(lang);
+  }, [lang]);
+
   function handleKeyDown(e) {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       e.preventDefault();
@@ -737,6 +833,7 @@ export default function App() {
         <Sidebar
           lang={lang}
           onSelectLang={handleSelectLang}
+          onOpenRoute={openLandingRoute}
           history={history}
           onRestoreHistory={restoreFromHistory}
           onClearHistory={clearHistory}

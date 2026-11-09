@@ -7,6 +7,8 @@ import ShareDialog, { PasswordPrompt } from "./components/ShareDialog.jsx";
 import JwtModal from "./components/JwtModal.jsx";
 import Resizer from "./components/Resizer.jsx";
 import CopyMarkdownButton from "./components/CopyMarkdownButton.jsx";
+import JsonTree from "./components/JsonTree.jsx";
+import BrandMark from "./components/BrandMark.jsx";
 import { encryptShare, decryptShare } from "./share/crypto.js";
 import { encodeShare, decodeShare } from "./share/url-share.js";
 import { THEMES, getThemeMeta, flipTheme } from "./editor-themes.js";
@@ -14,6 +16,7 @@ import {
   LANGUAGES,
   SAMPLES,
   EXT_TO_LANG,
+  LANGUAGE_GROUPS,
 } from "./languages/registry.js";
 import {
   detectLangFromContent,
@@ -220,7 +223,8 @@ export default function App() {
   const workspaceRef = useRef(null);
   const editorRef = useRef(null);
   const [jsonPath, setJsonPath] = useState("");
-  const [jsonView, setJsonView] = useState("code"); // 'code' | 'table'
+  const [jsonView, setJsonView] = useState("tree"); // 'tree' | 'code' | 'table'
+  const [langFilter, setLangFilter] = useState("");
   const [jwtResult, setJwtResult] = useState(null);
   const [outputFullscreen, setOutputFullscreen] = useState(false);
 
@@ -287,9 +291,23 @@ export default function App() {
     }
   }, [lang, output]);
 
-  useEffect(() => {
-    if (!jsonTableData && jsonView === "table") setJsonView("code");
-  }, [jsonTableData, jsonView]);
+  const jsonTreeData = useMemo(() => {
+    if (lang !== "json" || !output) return null;
+    try {
+      const parsed = JSON.parse(output);
+      return parsed !== null && typeof parsed === "object" ? parsed : null;
+    } catch {
+      return null;
+    }
+  }, [lang, output]);
+
+  // The view the user picked, falling back when it doesn't apply to this output.
+  const outputView =
+    jsonView === "tree" && jsonTreeData
+      ? "tree"
+      : jsonView === "table" && jsonTableData
+        ? "table"
+        : "code";
 
   useEffect(() => {
     try {
@@ -771,7 +789,7 @@ export default function App() {
           },
           {
             id: "settings",
-            label: "Open format options",
+            label: "Open more options",
             run: () => setSettingsOpen(true),
           },
           {
@@ -859,112 +877,50 @@ export default function App() {
       )}
       <header className="topbar">
         <div className="brand">
-          <span className="brand-mark">pl</span>
+          <BrandMark size={28} />
           <span className="brand-name">
-            pretty-lush <span className="dim">/ code formatter</span>
+            <span className="brace">{"{"}</span> Pretty Lush{" "}
+            <span className="brace">{"}"}</span>
           </span>
           <span
             className="privacy-pill"
             title="All formatting runs locally in your browser. Nothing is uploaded."
           >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
-            <span>runs in your browser</span>
+            <span>Runs locally · nothing uploaded</span>
           </span>
+        </div>
+
+        <button
+          type="button"
+          className="cmd-search"
+          onClick={() => setPaletteOpen(true)}
+          aria-label="Search commands"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+          <span className="cmd-search-text">Search commands, tools, languages…</span>
+          <kbd>⌘K</kbd>
+        </button>
+
+        <div className="top-actions">
           <a
-            className="oss-chip"
+            className="gh-link"
             href="https://github.com/selamet/pretty-lush"
             target="_blank"
             rel="noopener noreferrer"
             title="Source on GitHub — give it a ★"
           >
-            <svg
-              className="oss-chip-mark"
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.52 2.87 8.35 6.84 9.7.5.1.68-.22.68-.49 0-.24-.01-.87-.01-1.71-2.79.62-3.38-1.37-3.38-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.23-.26-4.57-1.14-4.57-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.7 0 0 .84-.28 2.75 1.05A9.4 9.4 0 0 1 12 7.07c.85.004 1.71.12 2.51.34 1.91-1.33 2.75-1.05 2.75-1.05.55 1.4.2 2.44.1 2.7.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.58 5.06.36.32.68.94.68 1.89 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49C19.13 20.6 22 16.77 22 12.25 22 6.58 17.52 2 12 2z" />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
             </svg>
-            <span className="oss-chip-repo">selamet/pretty-lush</span>
-            <span className="oss-chip-sep" aria-hidden="true" />
-            <span className="oss-chip-star" aria-hidden="true">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              </svg>
-              <span className="oss-chip-star-label">Star</span>
-            </span>
+            <span>Star on GitHub</span>
           </a>
-        </div>
-        <div className="top-actions">
-          <div className="view-toggle" role="tablist" aria-label="View mode">
-            <button
-              type="button"
-              className={viewMode === "split" ? "on" : ""}
-              onClick={() => setViewMode("split")}
-              title="Side-by-side view"
-            >
-              Split
-            </button>
-            <button
-              type="button"
-              className={viewMode === "diff" ? "on" : ""}
-              onClick={() => setViewMode("diff")}
-              title="Diff view"
-              disabled={!output && !error}
-            >
-              Diff
-            </button>
-            <button
-              type="button"
-              className={viewMode === "compare" ? "on" : ""}
-              onClick={() => setViewMode("compare")}
-              title="Compare two snippets"
-            >
-              Compare
-            </button>
-          </div>
-          <button
-            type="button"
-            className="icon-btn"
-            onClick={openShareDialog}
-            aria-label="Share snippet"
-            title="Share snippet"
-            disabled={!input.trim()}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="18" cy="5" r="3" />
-              <circle cx="6" cy="12" r="3" />
-              <circle cx="18" cy="19" r="3" />
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-            </svg>
-          </button>
-          <div className="settings-wrap">
-            <button
-              type="button"
-              className="icon-btn"
-              onClick={() => setSettingsOpen((v) => !v)}
-              aria-label="Format options"
-              title="Format options"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.07-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-            </button>
-            {settingsOpen && (
-              <SettingsPopover
-                settings={settings}
-                onChange={setSettings}
-                onClose={() => setSettingsOpen(false)}
-              />
-            )}
-          </div>
           <button
             type="button"
             className="icon-btn"
@@ -982,27 +938,166 @@ export default function App() {
             title={themeMeta.mode === "dark" ? "Light theme" : "Dark theme"}
           >
             {themeMeta.mode === "dark" ? (
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="4" />
                 <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
               </svg>
             ) : (
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               </svg>
             )}
           </button>
-          <select
-            className="lang-select"
-            value={lang}
-            onChange={(e) => handleSelectLang(e.target.value)}
+        </div>
+      </header>
+
+      <div className="toolbar">
+        <div className="seg-tabs" role="tablist" aria-label="View mode">
+          {[
+            { id: "split", label: "Format", title: "Side-by-side view" },
+            { id: "diff", label: "Diff", title: "Diff input ↔ output", disabled: !output && !error },
+            { id: "compare", label: "Compare", title: "Compare two snippets" },
+          ].map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              role="tab"
+              aria-selected={viewMode === m.id}
+              className={viewMode === m.id ? "on" : ""}
+              onClick={() => setViewMode(m.id)}
+              title={m.title}
+              disabled={m.disabled}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+
+        <select
+          className="lang-select mobile-only"
+          value={lang}
+          onChange={(e) => handleSelectLang(e.target.value)}
+          aria-label="Language"
+        >
+          {LANGUAGES.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.label}
+            </option>
+          ))}
+        </select>
+
+        <div className="toolbar-options">
+          <div className="opt">
+            <span className="opt-label">Indent</span>
+            <div className="mini-seg">
+              {[2, 4, "tab"].map((v) => (
+                <button
+                  key={String(v)}
+                  type="button"
+                  aria-pressed={settings.indent === v}
+                  className={settings.indent === v ? "on" : ""}
+                  onClick={() => setSettings((s) => ({ ...s, indent: v }))}
+                >
+                  {v === "tab" ? "Tab" : v}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="opt">
+            <span className="opt-label">Quotes</span>
+            <div className="mini-seg">
+              {[
+                ["double", '"'],
+                ["single", "'"],
+                ["preserve", "auto"],
+              ].map(([q, label]) => (
+                <button
+                  key={q}
+                  type="button"
+                  aria-pressed={settings.quotes === q}
+                  className={settings.quotes === q ? "on" : ""}
+                  onClick={() => setSettings((s) => ({ ...s, quotes: q }))}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className="opt">
+            <span className="opt-label">Width</span>
+            <input
+              type="number"
+              className="opt-input"
+              min="40"
+              max="200"
+              step="2"
+              value={settings.lineWidth}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                if (Number.isFinite(n) && n > 0)
+                  setSettings((s) => ({ ...s, lineWidth: n }));
+              }}
+            />
+          </label>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={settings.autoFormat}
+            className="opt-switch"
+            onClick={() =>
+              setSettings((s) => ({ ...s, autoFormat: !s.autoFormat }))
+            }
+            title="Format on every change, after 800ms"
           >
-            {LANGUAGES.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.label}
-              </option>
-            ))}
-          </select>
+            <span className={`switch ${settings.autoFormat ? "on" : ""}`} aria-hidden="true">
+              <span className="knob" />
+            </span>
+            Format as I type
+          </button>
+        </div>
+
+        <div className="toolbar-actions">
+          <div className="settings-wrap">
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => setSettingsOpen((v) => !v)}
+              aria-label="More options"
+              title="More options"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="4" y1="21" x2="4" y2="14" />
+                <line x1="4" y1="10" x2="4" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12" y2="3" />
+                <line x1="20" y1="21" x2="20" y2="16" />
+                <line x1="20" y1="12" x2="20" y2="3" />
+                <line x1="1" y1="14" x2="7" y2="14" />
+                <line x1="9" y1="8" x2="15" y2="8" />
+                <line x1="17" y1="16" x2="23" y2="16" />
+              </svg>
+            </button>
+            {settingsOpen && (
+              <SettingsPopover
+                settings={settings}
+                onChange={setSettings}
+                onClose={() => setSettingsOpen(false)}
+              />
+            )}
+          </div>
+          <button
+            type="button"
+            className="btn"
+            onClick={openShareDialog}
+            disabled={!input.trim()}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+              <polyline points="16 6 12 2 8 6" />
+              <line x1="12" y1="2" x2="12" y2="15" />
+            </svg>
+            Share
+          </button>
           <button
             className="btn-primary btn"
             onClick={handleFormat}
@@ -1020,7 +1115,7 @@ export default function App() {
             )}
           </button>
         </div>
-      </header>
+      </div>
 
       {suggestion && (
         <div className="suggestion">
@@ -1067,20 +1162,65 @@ export default function App() {
         }}
       >
         <aside className="sidebar">
-          <div className="side-label">Languages</div>
-          {LANGUAGES.map((l) => (
-            <div
-              key={l.id}
-              className={`file-row ${l.id === lang ? "active" : ""}`}
-              onClick={() => handleSelectLang(l.id)}
-            >
-              {l.label}
-              {l.ext && <span className="file-ext">.{l.ext}</span>}
-            </div>
-          ))}
+          <label className="side-filter">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Filter languages"
+              aria-label="Filter languages"
+              spellCheck={false}
+              autoComplete="off"
+              value={langFilter}
+              onChange={(e) => setLangFilter(e.target.value)}
+            />
+          </label>
+
+          <nav className="lang-nav" aria-label="Languages">
+            {[
+              ...LANGUAGE_GROUPS,
+              {
+                name: "Other",
+                ids: LANGUAGES.map((l) => l.id).filter(
+                  (id) => !LANGUAGE_GROUPS.some((g) => g.ids.includes(id))
+                ),
+              },
+            ].map((g) => {
+              const q = langFilter.trim().toLowerCase();
+              const items = g.ids
+                .map((id) => LANGUAGES.find((l) => l.id === id))
+                .filter(Boolean)
+                .filter(
+                  (l) =>
+                    !q ||
+                    l.label.toLowerCase().includes(q) ||
+                    (l.ext && l.ext.includes(q))
+                );
+              if (!items.length) return null;
+              return (
+                <div className="lang-group" key={g.name}>
+                  <div className="side-label">{g.name}</div>
+                  {items.map((l) => (
+                    <button
+                      type="button"
+                      key={l.id}
+                      className={`file-row ${l.id === lang ? "active" : ""}`}
+                      aria-current={l.id === lang ? "page" : undefined}
+                      onClick={() => handleSelectLang(l.id)}
+                    >
+                      {l.label}
+                      {l.ext && <span className="file-ext">.{l.ext}</span>}
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
+          </nav>
 
           {history.length > 0 && (
-            <>
+            <div className="side-recent">
               <div className="side-label side-label-with-action">
                 <span>Recent</span>
                 <button
@@ -1106,7 +1246,7 @@ export default function App() {
                   <span className="history-time">{formatRelativeTime(h.ts)}</span>
                 </div>
               ))}
-            </>
+            </div>
           )}
         </aside>
 
@@ -1315,7 +1455,7 @@ export default function App() {
             onDrag={(dx, _startVal, ctx) => {
               const editorEl = editorRef.current;
               if (!editorEl) return;
-              const total = editorEl.getBoundingClientRect().width - 5; // minus handle
+              const total = editorEl.getBoundingClientRect().width - 12; // minus handle
               const startInputPx = ctx.startInputPx;
               const nextInputPx = Math.min(
                 total - 80,
@@ -1335,7 +1475,7 @@ export default function App() {
             startContext={() => {
               const editorEl = editorRef.current;
               if (!editorEl) return { startInputPx: 0 };
-              const total = editorEl.getBoundingClientRect().width - 5;
+              const total = editorEl.getBoundingClientRect().width - 12;
               return {
                 startInputPx: (layout.inputFr / (layout.inputFr + 1)) * total,
               };
@@ -1349,22 +1489,39 @@ export default function App() {
                 <span className="meta">
                   {output ? `${stats.outLines} lines` : "—"}
                 </span>
-                {jsonTableData && (
+                {(jsonTreeData || jsonTableData) && !error && (
                   <div className="view-toggle small" role="tablist" aria-label="Output view">
+                    {jsonTreeData && (
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={outputView === "tree"}
+                        className={outputView === "tree" ? "on" : ""}
+                        onClick={() => setJsonView("tree")}
+                      >
+                        Tree
+                      </button>
+                    )}
                     <button
                       type="button"
-                      className={jsonView === "code" ? "on" : ""}
+                      role="tab"
+                      aria-selected={outputView === "code"}
+                      className={outputView === "code" ? "on" : ""}
                       onClick={() => setJsonView("code")}
                     >
                       Code
                     </button>
-                    <button
-                      type="button"
-                      className={jsonView === "table" ? "on" : ""}
-                      onClick={() => setJsonView("table")}
-                    >
-                      Table
-                    </button>
+                    {jsonTableData && (
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={outputView === "table"}
+                        className={outputView === "table" ? "on" : ""}
+                        onClick={() => setJsonView("table")}
+                      >
+                        Table
+                      </button>
+                    )}
                   </div>
                 )}
                 <ImageButton
@@ -1387,7 +1544,16 @@ export default function App() {
             <div className="editor-host" ref={outputCaptureRef}>
               {error ? (
                 <ErrorCard error={error} language={currentLang.label} />
-              ) : jsonTableData && jsonView === "table" ? (
+              ) : outputView === "tree" ? (
+                <JsonTree
+                  key={output}
+                  data={jsonTreeData}
+                  onUsePath={(p) => {
+                    setJsonPath(p);
+                    setShareToast({ kind: "ok", message: "Filter set — press ⌘⏎ to apply" });
+                  }}
+                />
+              ) : outputView === "table" ? (
                 <JsonTable rows={jsonTableData.rows} keys={jsonTableData.keys} />
               ) : (
                 <CodeEditor theme={settings.editorTheme}
@@ -1419,7 +1585,13 @@ export default function App() {
         </span>
         <span>{currentLang.label}</span>
         <span className="spacer" />
-        <span>utf-8 · lf</span>
+        <span>
+          {settings.indent === "tab" ? "tabs" : `${settings.indent} spaces`} ·{" "}
+          {settings.lineWidth} cols · utf-8 · lf
+        </span>
+        <span className="status-hint">
+          <kbd>⌘K</kbd> commands
+        </span>
       </footer>
     </div>
   );
@@ -1446,7 +1618,7 @@ function SettingsPopover({ settings, onChange, onClose }) {
   }
 
   return (
-    <div className="popover" role="dialog" aria-label="Format options">
+    <div className="popover" role="dialog" aria-label="More options">
       <div className="popover-row">
         <label>Editor theme</label>
         <select
@@ -1460,67 +1632,6 @@ function SettingsPopover({ settings, onChange, onClose }) {
             </option>
           ))}
         </select>
-      </div>
-
-      <div className="popover-row">
-        <label>Indent</label>
-        <div className="seg">
-          {[2, 4, "tab"].map((v) => (
-            <button
-              key={String(v)}
-              type="button"
-              className={settings.indent === v ? "on" : ""}
-              onClick={() => set("indent", v)}
-            >
-              {v === "tab" ? "tab" : `${v} sp`}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="popover-row">
-        <label>
-          Line width <span className="val">{settings.lineWidth}</span>
-        </label>
-        <input
-          type="range"
-          min="60"
-          max="120"
-          step="2"
-          value={settings.lineWidth}
-          onChange={(e) => set("lineWidth", Number(e.target.value))}
-        />
-      </div>
-
-      <div className="popover-row">
-        <label>Quotes</label>
-        <div className="seg">
-          {["single", "double", "preserve"].map((q) => (
-            <button
-              key={q}
-              type="button"
-              className={settings.quotes === q ? "on" : ""}
-              onClick={() => set("quotes", q)}
-            >
-              {q === "single" ? "'" : q === "double" ? '"' : "auto"}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="popover-row toggle">
-        <label>
-          Auto format
-          <span className="hint">on every change, after 800ms</span>
-        </label>
-        <button
-          type="button"
-          className={`switch ${settings.autoFormat ? "on" : ""}`}
-          onClick={() => set("autoFormat", !settings.autoFormat)}
-          aria-pressed={settings.autoFormat}
-        >
-          <span className="knob" />
-        </button>
       </div>
 
       <div className="popover-row toggle">

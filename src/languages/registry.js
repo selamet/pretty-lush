@@ -87,3 +87,11 @@ export const MARKDOWN_LANG_TAGS = {
   dotenv: "ini",
   sql: "sql",
 };
+
+// Sidebar grouping. Any language missing here falls into "Other".
+export const LANGUAGE_GROUPS = [
+  { name: "Data", ids: ["json", "yaml", "sql", "dotenv"] },
+  { name: "Web", ids: ["javascript", "typescript", "jsx", "tsx", "vue", "html", "css"] },
+  { name: "Scripts & ops", ids: ["python", "shell", "dockerfile"] },
+  { name: "Docs", ids: ["markdown"] },
+];

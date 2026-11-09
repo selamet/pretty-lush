@@ -18,6 +18,7 @@ describe("loadSettings", () => {
       schema: "pretty-lush:schema:v1",
       regex: "pretty-lush:regex:v1",
       profiles: "pretty-lush:profiles:v1",
+      tabs: "pretty-lush:tabs:v1",
     });
   });
 

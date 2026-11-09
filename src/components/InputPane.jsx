@@ -25,6 +25,9 @@ export default function InputPane({
   onSchemaToggle,
   onViewReady,
   onEditorFocus,
+  // Changes per snippet tab: the editor is re-created (synchronously, no
+  // flicker) so each tab gets its own undo history and selection.
+  editorKey,
 }) {
   const viewRef = useRef(null);
   const inLines = input.split("\n").length;
@@ -103,6 +106,7 @@ export default function InputPane({
       )}
       <div className="editor-host" onPaste={onPaste} onFocus={onEditorFocus}>
         <CodeEditor
+          key={editorKey}
           theme={theme}
           value={input}
           onChange={onInputChange}

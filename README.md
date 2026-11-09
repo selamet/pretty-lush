@@ -24,6 +24,7 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 - Auto-detect language from pasted content or dropped files
 - Drag-and-drop a file to load it (extension picks the language)
 - Side-by-side editor with syntax highlighting (CodeMirror 6)
+- **Tabs / snippets** — keep up to 20 snippets open in a tab strip above the editor. Each tab has its own language, input, output, JSONPath filter, Code / Tree / Table view and Types / cURL mode; settings, profiles, Compare and Regex stay global. "+" or `Alt+T` opens a tab, double-click or `F2` renames it (default names follow the language: "JSON", "JSON 2"…), drag or `Alt+Shift+←/→` (`⌘⌥←/→` on macOS, with the tab focused) reorders, right-click for Rename / Duplicate / Move / Close / Close other tabs. Closing a tab with content shows an **Undo** toast (or `Alt+Shift+T` / ⌘K → "Reopen closed tab"); closing the last tab leaves a fresh empty one. Tabs and the active tab survive reloads (your pre-tabs workspace becomes the first tab), share links open in a new tab, and the URL follows the active tab's language. ⌘K: "New tab", "Close tab", "Reopen closed tab", "Rename tab", "Go to tab: …"
 - Inline diff view between input and output
 - Configurable indent (2 / 4 / tab), line width, quote style; the settings popover adds Prettier's semicolons, trailing commas, bracket spacing, arrow parens, prose wrap and line endings
 - **Import your repo's config** — "Import config…" in the settings popover (or ⌘K → "Import formatter config…") takes a pasted, picked or dropped `.prettierrc` (JSON / YAML / TOML), `package.json` (`"prettier"` key), `.editorconfig` (`[*]`, plus `[*.py]` for Python) or `ruff.toml` / `pyproject.toml` (`[tool.ruff]` line-length, indent-width, `[format]` quote-style / indent-style). A review step lists every applied option and every ignored one with the reason (unknown, unsupported, invalid value, lint rules, overrides…) before you apply. Ruff options become Python-only overrides, so they don't change Prettier output
@@ -213,6 +214,12 @@ WASM URLs are resolved via Vite's `?url` import so they resolve correctly in bot
 | `⌘F` / `Ctrl+F` | Find in editor |
 | `⌘G` / `Ctrl+G` | Select all matches of current selection (multi-cursor) |
 | `Esc` | Close palette / search / settings popover / dialogs / fullscreen |
+| `Alt+T` / `Alt+W` | New tab / close tab (Alt = Option on macOS; `⌘T` / `⌘W` belong to the browser) |
+| `Alt+Shift+T` | Reopen the last closed tab |
+| `Ctrl+Tab` / `Ctrl+Shift+Tab` | Next / previous tab (where the browser lets the page see it, e.g. the installed PWA) |
+| `Alt+1` … `Alt+8`, `Alt+9` | Go to tab 1…8, last tab |
+| `F2` | Rename the active tab |
+| `←` `→` `Home` `End` · `Alt+Shift+←/→` (`⌘⌥←/→`) · `Delete` | With a tab focused: switch · move · close |
 
 The ⌘K palette is the canonical surface — every formatter, theme, text utility, view-mode switch and share action is reachable from there. Use it as a discovery tool: type `jwt`, `base64`, `sort`, `compare`, `dracula`, `secret`…
 
@@ -248,14 +255,14 @@ pretty-lush/
 │   │   ├── usePersistentState.js     #   useState mirrored to localStorage
 │   │   ├── useSettings.js            #   settings + theme chrome (data-theme, CSS vars)
 │   │   ├── useProfiles.js            #   named settings profiles on top of useSettings
-│   │   ├── useWorkspace.js           #   current language + per-language inputs
+│   │   ├── useTabs.js                #   snippet tabs: active tab's language, inputs, output + view state
 │   │   ├── useHistory.js · useLayout.js · useCompareSnippets.js · useRegexTester.js
 │   │   ├── useShare.js               #   share dialog, link creation, #s= / #p= loading
 │   │   └── useToast.js · useLanguageSuggestion.js · useFileDrop.js · useWindowKeydown.js
 │   ├── state/                       # pure persistence + domain logic (unit-tested)
 │   │   ├── storage.js                #   STORAGE_KEYS + safe localStorage helpers
 │   │   ├── profiles.js               #   settings profiles: load / migrate, save, switch, rename, delete
-│   │   └── settings.js · workspace.js · history.js · layout.js
+│   │   └── settings.js · workspace.js · tabs.js · history.js · layout.js
 │   ├── config-import/               # .prettierrc / package.json / .editorconfig / ruff.toml / pyproject.toml → settings patch + summary
 │   ├── convert/                     # data converters (JSON ↔ YAML ↔ TOML ↔ CSV, RFC 4180 CSV)
 │   ├── codegen/                     # JSON → TypeScript / Zod / Pydantic (schema inference + emitters)

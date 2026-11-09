@@ -13,6 +13,9 @@ export const STORAGE_KEYS = {
   schema: "pretty-lush:schema:v1",
   regex: "pretty-lush:regex:v1",
   profiles: "pretty-lush:profiles:v1",
+  // Snippet tabs (#18). Supersedes `workspace`, which is still read as a
+  // migration fallback and mirrored from the active tab.
+  tabs: "pretty-lush:tabs:v1",
 };
 
 // Returns the browser's localStorage, or null when it is unavailable (SSR,

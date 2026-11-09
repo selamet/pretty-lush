@@ -31,6 +31,12 @@ function makeActions() {
     importConfig: vi.fn(),
     switchProfile: vi.fn(),
     saveProfile: vi.fn(),
+    newTab: vi.fn(),
+    closeTab: vi.fn(),
+    reopenTab: vi.fn(),
+    renameTab: vi.fn(),
+    switchTab: vi.fn(),
+    cycleTab: vi.fn(),
   };
 }
 
@@ -48,6 +54,32 @@ function build(overrides = {}) {
   return { commands, byId, actions };
 }
 
+describe("buildCommands: tabs", () => {
+  it("offers tab actions and a Go to tab command per tab", () => {
+    const { byId, actions } = build({
+      tabs: { list: [{ id: "t1", label: "JSON" }, { id: "t2", label: "Payload" }], activeId: "t2" },
+    });
+    for (const id of ["tab-new", "tab-close", "tab-reopen", "tab-rename"]) byId[id].run();
+    expect(actions.newTab).toHaveBeenCalled();
+    expect(actions.closeTab).toHaveBeenCalled();
+    expect(actions.reopenTab).toHaveBeenCalled();
+    expect(actions.renameTab).toHaveBeenCalled();
+    expect(byId["tab-go-t1"].label).toBe("Go to tab: JSON");
+    expect(byId["tab-go-t2"].label).toBe("Go to tab: Payload (active)");
+    expect(byId["tab-go-t1"].shortcut).toBe("Alt+1");
+    byId["tab-go-t1"].run();
+    expect(actions.switchTab).toHaveBeenCalledWith("t1");
+    byId["tab-prev"].run();
+    expect(actions.cycleTab).toHaveBeenCalledWith(-1);
+  });
+
+  it("hides next / previous with a single tab", () => {
+    const { byId } = build({ tabs: { list: [{ id: "t1", label: "JSON" }], activeId: "t1" } });
+    expect(byId["tab-next"]).toBeUndefined();
+    expect(byId["tab-go-t1"]).toBeDefined();
+  });
+});
+
 describe("buildCommands", () => {
   it("has unique ids and a run function on every command", () => {
     const { commands } = build();
@@ -61,6 +93,10 @@ describe("buildCommands", () => {
     expect(commands.slice(0, core.length).map((c) => c.id)).toEqual(core);
     expect(commands.map((c) => c.id)).toEqual([
       ...core,
+      "tab-new",
+      "tab-close",
+      "tab-reopen",
+      "tab-rename",
       "import-config",
       "profile-save",
       ...LANGUAGES.map((l) => `lang-${l.id}`),

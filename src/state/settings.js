@@ -4,12 +4,53 @@ export const DEFAULT_SETTINGS = {
   indent: 2,
   lineWidth: 80,
   quotes: "double",
+  // Prettier-only options (JS / TS / CSS / Markdown / …); defaults match
+  // Prettier 3 so existing output does not change.
+  semi: true,
+  trailingComma: "all",
+  bracketSpacing: true,
+  arrowParens: "always",
+  proseWrap: "preserve",
+  endOfLine: "lf",
+  // Python (Ruff) overrides, usually from an imported ruff.toml /
+  // pyproject.toml. null means "use indent / lineWidth / quotes above".
+  pythonIndent: null,
+  pythonLineWidth: null,
+  pythonQuotes: null,
   editorTheme: "pretty-lush-light",
   autoFormat: false,
   formatOnPaste: false,
   // Ruff lint diagnostics for Python (input editor + problems list).
   lint: false,
 };
+
+// Allowed values of the enum-like settings (also used to validate imported
+// formatter configs).
+export const SETTING_CHOICES = {
+  quotes: ["double", "single", "preserve"],
+  trailingComma: ["all", "es5", "none"],
+  arrowParens: ["always", "avoid"],
+  proseWrap: ["preserve", "always", "never"],
+  endOfLine: ["lf", "crlf", "cr", "auto"],
+};
+
+// Settings that shape formatter output. These are what a settings profile
+// stores and what auto-format reacts to; editor theme and behaviour toggles
+// (auto-format, format on paste, lint) stay global.
+export const FORMAT_SETTING_KEYS = [
+  "indent",
+  "lineWidth",
+  "quotes",
+  "semi",
+  "trailingComma",
+  "bracketSpacing",
+  "arrowParens",
+  "proseWrap",
+  "endOfLine",
+  "pythonIndent",
+  "pythonLineWidth",
+  "pythonQuotes",
+];
 
 const DARK_THEME = "pretty-lush-dark";
 

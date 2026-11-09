@@ -10,6 +10,7 @@ import {
 import { convertCurl, getCurlTarget, looksLikeCurl } from "./curl/index.js";
 import CommandPalette from "./components/CommandPalette.jsx";
 import ShareDialog, { PasswordPrompt } from "./components/ShareDialog.jsx";
+import ImportConfigDialog from "./components/ImportConfigDialog.jsx";
 import ToolModalHost from "./components/ToolModalHost.jsx";
 import Toast from "./components/Toast.jsx";
 import DropOverlay from "./components/DropOverlay.jsx";
@@ -45,6 +46,8 @@ import {
 } from "./output/json-views.js";
 import { jsonPathResultBases } from "./output/json-filter.js";
 import { useSettings } from "./hooks/useSettings.js";
+import { useProfiles } from "./hooks/useProfiles.js";
+import { FORMAT_SETTING_KEYS } from "./state/settings.js";
 import { useHistory } from "./hooks/useHistory.js";
 import { useLayout } from "./hooks/useLayout.js";
 import { useWorkspace } from "./hooks/useWorkspace.js";
@@ -77,7 +80,12 @@ export default function App() {
   const [error, setError] = useState(null);
   const [isFormatting, setIsFormatting] = useState(false);
   const { settings, setSettings, themeMeta } = useSettings();
+  // false | true | "save" ("save" opens the popover's save-as-profile input).
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const profiles = useProfiles(settings, setSettings);
+  const [importOpen, setImportOpen] = useState(false);
+  // Changes whenever any option that shapes formatter output changes.
+  const formatSettingsKey = FORMAT_SETTING_KEYS.map((k) => settings[k]).join("|");
   const [viewMode, setViewMode] = useState("split"); // "split" | "diff" | "compare" | "regex"
   const compare = useCompareSnippets();
   const [toast, setToast] = useToast();
@@ -580,7 +588,7 @@ export default function App() {
     }, 800);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input, lang, settings.autoFormat, settings.indent, settings.lineWidth, settings.quotes]);
+  }, [input, lang, settings.autoFormat, formatSettingsKey]);
 
   function handleSelectLang(id) {
     if (id !== lang) closeTypegen();
@@ -745,8 +753,25 @@ export default function App() {
       toggleSchema,
       generateSchema: generateSchemaFromInput,
       searchTree: searchJsonTree,
+      importConfig: () => setImportOpen(true),
+      switchProfile: (name) => {
+        profiles.switchTo(name);
+        setToast({ kind: "ok", message: `Switched to profile "${name}"` });
+      },
+      saveProfile: () => setSettingsOpen("save"),
     },
+    profiles: { names: profiles.names, active: profiles.active },
   });
+
+  function applyImportedConfig(result) {
+    setSettings((s) => ({ ...s, ...result.patch }));
+    setImportOpen(false);
+    const n = result.applied.length;
+    setToast({
+      kind: "ok",
+      message: `Imported ${n} ${n === 1 ? "option" : "options"} into "${profiles.active}"`,
+    });
+  }
 
   return (
     <div
@@ -775,6 +800,12 @@ export default function App() {
         onSubmit={share.submitPassword}
         onCancel={share.cancelPassword}
       />
+      <ImportConfigDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onApply={applyImportedConfig}
+        activeProfile={profiles.active}
+      />
       <ToolModalHost
         modal={toolModal}
         onClose={() => setToolModal(null)}
@@ -802,6 +833,8 @@ export default function App() {
         onFormat={handleFormat}
         onMinify={handleMinify}
         isFormatting={isFormatting}
+        profiles={profiles}
+        onImportConfig={() => setImportOpen(true)}
       />
 
       {curlSuggestion ? (

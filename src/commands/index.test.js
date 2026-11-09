@@ -28,6 +28,9 @@ function makeActions() {
     searchTree: vi.fn(),
     insertText: vi.fn(),
     openIdGenerator: vi.fn(),
+    importConfig: vi.fn(),
+    switchProfile: vi.fn(),
+    saveProfile: vi.fn(),
   };
 }
 
@@ -58,6 +61,8 @@ describe("buildCommands", () => {
     expect(commands.slice(0, core.length).map((c) => c.id)).toEqual(core);
     expect(commands.map((c) => c.id)).toEqual([
       ...core,
+      "import-config",
+      "profile-save",
       ...LANGUAGES.map((l) => `lang-${l.id}`),
       ...THEMES.map((t) => `theme-${t.id}`),
       ...TEXT_TOOLS.map((t) => t.id),
@@ -72,6 +77,24 @@ describe("buildCommands", () => {
       "insert-ulid",
       "generate-ids",
     ]);
+  });
+
+  it("adds config import, save-as-profile and one switch command per profile", () => {
+    const { byId, actions } = build({
+      profiles: { names: ["Default", "Work repo"], active: "Work repo" },
+    });
+    expect(byId["import-config"]).toMatchObject({
+      label: "Import formatter config…",
+      group: "Settings",
+    });
+    byId["import-config"].run();
+    expect(actions.importConfig).toHaveBeenCalled();
+    byId["profile-save"].run();
+    expect(actions.saveProfile).toHaveBeenCalled();
+    expect(byId["profile-Default"].label).toBe("Switch profile: Default");
+    expect(byId["profile-Work repo"].label).toBe("Switch profile: Work repo (active)");
+    byId["profile-Default"].run();
+    expect(actions.switchProfile).toHaveBeenCalledWith("Default");
   });
 
   it("wires hash and ID generator commands", () => {

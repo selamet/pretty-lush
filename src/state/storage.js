@@ -12,6 +12,7 @@ export const STORAGE_KEYS = {
   compare: "pretty-lush:compare:v1",
   schema: "pretty-lush:schema:v1",
   regex: "pretty-lush:regex:v1",
+  profiles: "pretty-lush:profiles:v1",
 };
 
 // Returns the browser's localStorage, or null when it is unavailable (SSR,

@@ -4627,3 +4627,419 @@ button {
     width: auto;
   }
 }
+
+/* ── settings profiles + Prettier options in the popover ── */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.popover.settings-popover {
+  width: 288px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.settings-btn.has-profile {
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 0 9px;
+}
+
+.profile-chip {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.profile-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.profile-bar .popover-select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.profile-icon-btn {
+  appearance: none;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.profile-icon-btn:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.profile-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.profile-icon-btn:focus-visible,
+.popover-import:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-input {
+  padding: 7px 10px;
+  font-size: 12.5px;
+}
+
+.profile-input[aria-invalid="true"] {
+  border-color: var(--warn);
+}
+
+.profile-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.copy-btn.profile-primary {
+  background: var(--primary-bg);
+  border-color: var(--primary-bg);
+  color: var(--primary-fg);
+}
+
+.copy-btn.profile-primary:hover:not(:disabled) {
+  background: var(--primary-bg-hover);
+  border-color: var(--primary-bg-hover);
+  color: var(--primary-fg);
+}
+
+.copy-btn.profile-danger {
+  color: var(--warn);
+  border-color: var(--warn-border);
+  background: var(--warn-soft);
+}
+
+.copy-btn.profile-danger:hover:not(:disabled) {
+  color: var(--warn);
+  background: var(--warn-soft);
+  border-color: var(--warn);
+}
+
+.profile-error {
+  font-size: 11.5px;
+  color: var(--warn);
+}
+
+.profile-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.profile-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  color: var(--ink);
+  background: var(--warn-soft);
+  border: 1px solid var(--warn-border);
+  border-radius: 6px;
+}
+
+.popover-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.popover-section-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.popover-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.popover-grid-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 28px;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.popover-grid-row label {
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.popover-select.popover-select-sm {
+  width: 108px;
+  padding: 5px 24px 5px 8px;
+  font-size: 12px;
+}
+
+.popover-python-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.popover-python-val {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.btn.popover-import {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  color: var(--ink-2);
+}
+
+.btn.popover-import:hover {
+  color: var(--ink);
+}
+
+/* ── import formatter config dialog ── */
+.dialog.import-dialog {
+  width: 520px;
+  max-height: calc(100vh - 12vh - 24px);
+}
+
+.import-dialog .dialog-body {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.import-drop {
+  position: relative;
+}
+
+.import-text {
+  display: block;
+  min-height: 132px;
+  resize: vertical;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.import-drop.is-over .import-text {
+  border-color: var(--accent);
+  border-style: dashed;
+}
+
+.import-drop-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.import-file-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 24px;
+}
+
+.import-file-row .copy-btn {
+  flex: none;
+  white-space: nowrap;
+}
+
+.import-file-types {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.import-file-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 4px 0 8px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-file-clear {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+}
+
+.import-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.import-summary-head {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.import-summary-sub {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.import-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.import-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.import-item code {
+  font-family: var(--mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.import-item.is-ignored {
+  color: var(--muted);
+}
+
+.import-item.is-ignored code {
+  color: var(--ink-2);
+}
+
+.import-mark {
+  width: 12px;
+  flex: none;
+  text-align: center;
+  font-weight: 600;
+}
+
+.import-item.is-applied .import-mark {
+  color: var(--accent);
+}
+
+.import-arrow {
+  color: var(--muted);
+}
+
+.import-reason {
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .profile-chip {
+    max-width: 72px;
+  }
+
+  /* The settings button sits mid-row on phones: anchor the popover to the
+     toolbar instead so it spans the screen without overflowing it. */
+  .toolbar {
+    position: relative;
+  }
+
+  .toolbar .settings-wrap {
+    position: static;
+  }
+
+  .popover.settings-popover {
+    top: calc(100% + 4px);
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+
+  .dialog-overlay:has(.import-dialog) {
+    padding-top: 4vh;
+  }
+
+  .dialog.import-dialog {
+    max-height: calc(100vh - 4vh - 16px);
+  }
+}

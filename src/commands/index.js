@@ -34,8 +34,12 @@ import { ID_KINDS } from "../text-utils/ids.js";
  *   generateSchema() — replace the schema with one inferred from the input,
  *   searchTree() — focus the search box of the JSON tree view,
  *   insertText(text, label) — put generated text at the input cursor,
- *   openIdGenerator() — open the "Generate N IDs" modal
+ *   openIdGenerator() — open the "Generate N IDs" modal,
+ *   importConfig() — open the "Import formatter config" dialog,
+ *   switchProfile(name) — activate a settings profile,
+ *   saveProfile() — open the settings popover's "save as profile" input
  * @param {boolean} [ctx.schemaOn]  schema validation currently shown
+ * @param {{ names: string[], active: string }} [ctx.profiles]  settings profiles
  */
 export function buildCommands({
   viewMode,
@@ -43,6 +47,7 @@ export function buildCommands({
   schemaOn = false,
   themeMode,
   settings,
+  profiles = { names: [], active: null },
   actions,
 }) {
   return [
@@ -112,6 +117,27 @@ export function buildCommands({
       keywords: "ruff check problems diagnostics flake8 python",
       run: () => actions.updateSettings((s) => ({ ...s, lint: !s.lint })),
     },
+    {
+      id: "import-config",
+      label: "Import formatter config…",
+      group: "Settings",
+      keywords: "prettierrc prettier editorconfig ruff pyproject package.json settings options profile",
+      run: () => actions.importConfig(),
+    },
+    {
+      id: "profile-save",
+      label: "Save settings as profile…",
+      group: "Settings",
+      keywords: "profile preset save new",
+      run: () => actions.saveProfile(),
+    },
+    ...profiles.names.map((name) => ({
+      id: `profile-${name}`,
+      label: `Switch profile: ${name}${name === profiles.active ? " (active)" : ""}`,
+      group: "Settings",
+      keywords: "profile preset settings",
+      run: () => actions.switchProfile(name),
+    })),
     ...LANGUAGES.map((l) => ({
       id: `lang-${l.id}`,
       label: l.label,

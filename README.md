@@ -167,7 +167,7 @@ The ⌘K palette is the canonical surface — every formatter, theme, text utili
 
 ---
 
-## Project layout
+## Project structure
 
 ```
 pretty-lush/
@@ -178,56 +178,48 @@ pretty-lush/
 │   └── paste/[id].js                # GET  — retrieve (and DEL if burnAfterRead)
 ├── src/
 │   ├── main.jsx                     # React entry
-│   ├── App.jsx                      # main shell — state, topbar, sidebar, panes, palette wiring
+│   ├── App.jsx                      # thin shell — format state + wiring hooks to components
 │   ├── styles.css                   # all styling, light + dark + theme overrides
 │   ├── editor-themes.js             # editor theme registry + flipTheme helper
-│   │
-│   ├── components/                  # React UI building blocks
-│   │   ├── CodeEditor.jsx            #   CodeMirror wrapper + multi-cursor + match-count
-│   │   ├── CommandPalette.jsx        #   ⌘K palette
-│   │   ├── CopyMarkdownButton.jsx    #   copy output as fenced code block
-│   │   ├── DiffView.jsx              #   input ↔ output line diff
-│   │   ├── JwtModal.jsx              #   modal that renders a decoded JWT
-│   │   ├── Resizer.jsx               #   drag handle for layout splits
-│   │   └── ShareDialog.jsx           #   share modal + password prompt + toggles
-│   │
+│   ├── commands/                    # ⌘K palette
+│   │   ├── index.js                  #   buildCommands(ctx) — pure, returns the palette list
+│   │   └── text-tools.js             #   declarative input → output tools + tool-modal tools
+│   ├── components/                  # React UI, one component per file
+│   │   ├── TopBar · Toolbar · SettingsPopover · SuggestionBanner · StatusBar
+│   │   ├── Sidebar · RecentHistory   #   language list + recent formats
+│   │   ├── InputPane · OutputPane · DiffPane · ComparePanes
+│   │   ├── CopyButton · DownloadButton · ImageButton · FullscreenButton · CopyMarkdownButton
+│   │   ├── ErrorCard · JsonTree · JsonTable · DiffView · CodeEditor · Resizer
+│   │   ├── CommandPalette · ShareDialog · JwtModal · ToolModalHost (tool-modal registry)
+│   │   └── Toast · DropOverlay · BrandMark
+│   ├── hooks/                       # stateful logic, no markup
+│   │   ├── usePersistentState.js     #   useState mirrored to localStorage
+│   │   ├── useSettings.js            #   settings + theme chrome (data-theme, CSS vars)
+│   │   ├── useWorkspace.js           #   current language + per-language inputs
+│   │   ├── useHistory.js · useLayout.js · useCompareSnippets.js
+│   │   ├── useShare.js               #   share dialog, link creation, #s= / #p= loading
+│   │   └── useToast.js · useLanguageSuggestion.js · useFileDrop.js · useWindowKeydown.js
+│   ├── state/                       # pure persistence + domain logic (unit-tested)
+│   │   ├── storage.js                #   STORAGE_KEYS + safe localStorage helpers
+│   │   └── settings.js · workspace.js · history.js · layout.js
+│   ├── output/                      # pure output helpers (JSON tree / table, filenames)
 │   ├── formatters/                  # one module per backend; index.js dispatches
-│   │   ├── index.js                  #   formatCode(lang, src, opts) + FormatError re-export
-│   │   ├── errors.js                 #   FormatError + Prettier / Ruff / sh error mappers
-│   │   ├── helpers.js                #   shared structural helpers
-│   │   ├── prettier.js               #   Prettier standalone + lazy-loaded plugins
-│   │   ├── json.js                   #   JSON.parse + JSONPath + JSON.stringify
-│   │   ├── python.js                 #   Ruff WASM workspace
-│   │   ├── shell.js                  #   sh-syntax / mvdan-sh WASM
-│   │   ├── sql.js                    #   sql-formatter
-│   │   ├── dockerfile.js             #   in-house heuristic
-│   │   └── dotenv.js                 #   in-house heuristic
-│   │
-│   ├── languages/                   # single source of truth for "what languages exist"
-│   │   ├── registry.js               #   LANGUAGES, SAMPLES, EXT_TO_LANG, MARKDOWN_LANG_TAGS
-│   │   ├── detect.js                 #   detectLangFromContent / detectLangFromFilename
-│   │   └── codemirror.js             #   LANG_MAP for CodeMirror 6
-│   │
-│   ├── share/                       # everything that talks to the share backend
-│   │   ├── crypto.js                 #   AES-GCM 256 + optional PBKDF2-derived password key
-│   │   └── url-share.js              #   URL-fragment encode / decode helpers
-│   │
-│   └── text-utils/                  # pure string transforms used by the ⌘K palette
-│       ├── index.js                  #   barrel for ergonomic imports
-│       ├── lines.js                  #   sort, dedupe, reverse, trim, collapse
-│       ├── case.js                   #   upper / lower / title
-│       ├── encoding.js               #   base64 / url-percent / hex (both directions)
-│       ├── jwt.js                    #   decodeJwt
-│       ├── timestamp.js              #   unix ↔ ISO
-│       └── python-json.js            #   Python literal ↔ JSON converter
+│   ├── languages/                   # registry, detection, sidebar groups, CodeMirror modes
+│   ├── share/                       # AES-GCM crypto + URL-fragment encode / decode
+│   └── text-utils/                  # pure string transforms used by ⌘K tools
 ├── index.html                       # title / meta / OG / PWA tags
 ├── vite.config.js                   # vite + react + PWA config
 └── package.json
 ```
 
-Adding a new language is a focused, three-file change: write `src/formatters/<lang>.js`, add a case to `src/formatters/index.js`, and register the entry in `src/languages/registry.js` + `src/languages/codemirror.js`.
+Common changes stay local:
 
-State is stored in `localStorage`:
+- **New palette command** — an input → output transform is one entry in `src/commands/text-tools.js` (`transform` + `toast`); any other command is one entry in `buildCommands` (`src/commands/index.js`) plus, if it needs new behaviour, a callback in the `actions` object App passes in.
+- **New tool modal** (e.g. a decoder that shows a dialog) — add the component in `src/components/`, register it in `TOOL_MODALS` in `ToolModalHost.jsx`, and add a `text-tools.js` entry with `modal`, `decode` and `emptyMessage`.
+- **New language** — write `src/formatters/<lang>.js`, add a case to `src/formatters/index.js`, and register the entry in `src/languages/registry.js` + `src/languages/codemirror.js`. The sidebar, mobile picker and palette pick it up automatically.
+- **New persisted setting** — add the default to `DEFAULT_SETTINGS` in `src/state/settings.js`; stored settings are merged over defaults, so existing users get it too.
+
+State is stored in `localStorage` (keys live in `src/state/storage.js` and must never be renamed):
 
 - `pretty-lush:state:v1` — current language + per-language inputs
 - `pretty-lush:settings:v1` — indent, line width, quotes, editor theme, auto-format, format-on-paste
@@ -248,7 +240,7 @@ The optional **encrypted share link** is the only feature that talks to a backen
 
 ## Contributing
 
-Issues, language requests, formatter tweaks, theme PRs all welcome. The codebase is small (one App component, a handful of helpers). Pure modules (formatters, text utilities, language detection, URL share) have Vitest unit tests — add one next to any module you touch, run `npm test`, then `npm run dev`, edit, refresh. Ship.
+Issues, language requests, formatter tweaks, theme PRs all welcome. The codebase is small (see [Project structure](#project-structure)). Pure modules (formatters, text utilities, language detection, URL share, persisted state, palette commands) have Vitest unit tests — add one next to any module you touch, run `npm test`, then `npm run dev`, edit, refresh. Ship.
 
 ---
 

@@ -1,4 +1,4 @@
-// Barrel for the ⌘K palette command wiring in App.jsx — keeps the import
+// Barrel for the ⌘K palette tool definitions (src/commands/text-tools.js) — keeps the import
 // block readable. Each module is also importable directly for tighter
 // dependency graphs.
 export {

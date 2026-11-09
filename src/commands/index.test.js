@@ -209,12 +209,30 @@ describe("TEXT_TOOLS", () => {
       expect(t.id).toMatch(/^util-/);
       if (t.modal) {
         expect(typeof t.decode).toBe("function");
-        expect(t.emptyMessage).toBeTruthy();
+        if (!t.allowEmpty) expect(t.emptyMessage).toBeTruthy();
       } else {
         expect(typeof t.transform).toBe("function");
         expect(t.toast).toBeTruthy();
       }
     }
+  });
+});
+
+describe("Explain cron expression tool", () => {
+  const tool = TEXT_TOOLS.find((t) => t.id === "util-cron");
+
+  it("opens the cron modal even on an empty input", () => {
+    expect(tool).toMatchObject({ modal: "cron", allowEmpty: true, useSelection: true });
+    expect(tool.decode("", { source: "input", selection: "", cursorLine: "", input: "" })).toEqual({
+      expression: "0 9 * * 1-5",
+    });
+  });
+
+  it("prefills from the selection, the cursor line, then the input", () => {
+    const input = "0 3 * * * backup.sh\n*/5 * * * * poll.sh";
+    expect(tool.decode("@hourly", { selection: "@hourly", cursorLine: "", input }).expression).toBe("@hourly");
+    expect(tool.decode(input, { selection: "", cursorLine: "*/5 * * * * poll.sh", input }).expression).toBe("*/5 * * * *");
+    expect(tool.decode(input, { selection: "", cursorLine: "", input }).expression).toBe("0 3 * * *");
   });
 });
 

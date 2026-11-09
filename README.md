@@ -86,6 +86,7 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 - Unix timestamp ↔ ISO date
 - **Hash** — ⌘K → "Hash input…" shows MD5, SHA-1, SHA-256, SHA-384 and SHA-512 of the input (or just the selection) at once, over UTF-8 bytes, with a Hex / Base64 switch and a copy button per row. SHA via Web Crypto, MD5 in pure JS; MD5 / SHA-1 are marked insecure (checksums only)
 - **UUID / ULID** — ⌘K → "Insert UUID v4", "Insert UUID v7" or "Insert ULID" puts a fresh ID at the input cursor (replacing the selection; appended on a new line if the editor wasn't used). "Generate N UUIDs…" opens a small modal to pick v4 / v7 / ULID and a count (up to 1,000), then copy the list or insert it. UUID v7 follows RFC 9562; v7 and ULID are monotonic, so IDs sort in creation order even within the same millisecond
+- **Cron explainer** — ⌘K → "Explain cron expression" opens a modal prefilled from the selection, the line under the cursor or the first crontab-looking line of the input (a crontab line's command is ignored). Shows a plain-English description ("At 09:00 on Monday through Friday", "At minute 0 past every 2nd hour from 8 through 18"), the next 5 runs in local time or UTC, a per-field breakdown and preset chips, all live as you type. 5-field and 6-field (seconds first) expressions, lists, ranges, steps, `JAN`–`DEC` / `SUN`–`SAT` names, `?`, 7 = Sunday and the `@daily`-style macros (`@reboot` → "At startup"); day-of-month and day-of-week combine with OR like standard cron. Impossible dates (Feb 30) show "Never runs"; Quartz-only `L` / `W` / `#` get a clear "not supported" error
 - **Python ↔ JSON** — paste a `repr(dict)` or `print(dict)` output and convert to JSON (handles `True`/`False`/`None`, single-quoted strings, tuples, sets, hex / underscored ints, triple-quoted strings); JSON → Python emits a properly indented Python literal with single quotes
 
 **Sharing**
@@ -237,7 +238,7 @@ pretty-lush/
 │   │   ├── InputPane · OutputPane · DiffPane · ComparePanes · RegexPanes
 │   │   ├── CopyButton · DownloadButton · ImageButton · FullscreenButton · CopyMarkdownButton
 │   │   ├── ErrorCard · JsonTree · JsonTable · DiffView · CodeEditor · Resizer
-│   │   ├── CommandPalette · ShareDialog · JwtModal · ToolModalHost (tool-modal registry)
+│   │   ├── CommandPalette · ShareDialog · JwtModal · HashModal · IdsModal · CronModal · ToolModalHost (tool-modal registry)
 │   │   └── Toast · DropOverlay · BrandMark
 │   ├── hooks/                       # stateful logic, no markup
 │   │   ├── usePersistentState.js     #   useState mirrored to localStorage
@@ -253,6 +254,7 @@ pretty-lush/
 │   ├── codegen/                     # JSON → TypeScript / Zod / Pydantic (schema inference + emitters)
 │   ├── curl/                        # cURL → fetch / axios / requests (shell tokenizer, flag parser, emitters)
 │   ├── schema/                      # JSON Schema validation (lazy Ajv), JSON pointer → source offset, schema generation
+│   ├── cron/                        # Cron explainer: parser, plain-English description, next-run search (pure)
 │   ├── regex/                       # Regex tester: pure match model + worker protocol, worker runner with timeout, CodeMirror highlights
 │   ├── output/                      # pure output helpers (JSON tree model + search, JSONPath build / parse, table, filenames)
 │   ├── formatters/                  # one module per backend; index.js dispatches
@@ -267,7 +269,7 @@ pretty-lush/
 Common changes stay local:
 
 - **New palette command** — an input → output transform is one entry in `src/commands/text-tools.js` (`transform` + `toast`); any other command is one entry in `buildCommands` (`src/commands/index.js`) plus, if it needs new behaviour, a callback in the `actions` object App passes in.
-- **New tool modal** (e.g. a decoder that shows a dialog) — add the component in `src/components/`, register it in `TOOL_MODALS` in `ToolModalHost.jsx`, and add a `text-tools.js` entry with `modal`, `decode` and `emptyMessage`.
+- **New tool modal** (e.g. a decoder that shows a dialog) — add the component in `src/components/`, register it in `TOOL_MODALS` in `ToolModalHost.jsx`, and add a `text-tools.js` entry with `modal`, `decode` and `emptyMessage` (or `allowEmpty`).
 - **New language** — write `src/formatters/<lang>.js`, add a case to `src/formatters/index.js`, and register the entry in `src/languages/registry.js` + a lazy loader in `src/languages/codemirror.js`. The sidebar, mobile picker and palette pick it up automatically.
 - **New persisted setting** — add the default to `DEFAULT_SETTINGS` in `src/state/settings.js`; stored settings are merged over defaults, so existing users get it too.
 

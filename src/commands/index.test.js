@@ -5,6 +5,7 @@ import { LANGUAGES } from "../languages/registry.js";
 import { THEMES } from "../editor-themes.js";
 import { CONVERSIONS } from "../convert/index.js";
 import { TYPEGEN_TARGETS } from "../codegen/index.js";
+import { CURL_TARGETS } from "../curl/index.js";
 
 function makeActions() {
   return {
@@ -21,6 +22,7 @@ function makeActions() {
     openToolModal: vi.fn(),
     convert: vi.fn(),
     generateTypes: vi.fn(),
+    convertCurl: vi.fn(),
     toggleSchema: vi.fn(),
     generateSchema: vi.fn(),
     searchTree: vi.fn(),
@@ -61,6 +63,7 @@ describe("buildCommands", () => {
       ...TEXT_TOOLS.map((t) => t.id),
       ...CONVERSIONS.map((c) => c.id),
       ...TYPEGEN_TARGETS.map((t) => `typegen-${t.id}`),
+      ...CURL_TARGETS.map((t) => `curl-${t.id}`),
       "schema-toggle",
       "schema-generate",
       "tree-search",
@@ -250,6 +253,16 @@ describe("indent helpers", () => {
     for (const t of TYPEGEN_TARGETS) expect(byId[`typegen-${t.id}`].group).toBe("Generate types");
     byId["typegen-zod"].run();
     expect(actions.generateTypes).toHaveBeenCalledWith("zod");
+  });
+
+  it("adds a cURL command per target that calls actions.convertCurl", () => {
+    const { byId, actions } = build();
+    expect(byId["curl-fetch"].label).toBe("Convert cURL to fetch");
+    expect(byId["curl-axios"].label).toBe("Convert cURL to axios");
+    expect(byId["curl-requests"].label).toBe("Convert cURL to Python requests");
+    for (const t of CURL_TARGETS) expect(byId[`curl-${t.id}`].group).toBe("cURL");
+    byId["curl-requests"].run();
+    expect(actions.convertCurl).toHaveBeenCalledWith("requests");
   });
 
   it("adds JSON Schema commands whose toggle label follows the state", () => {

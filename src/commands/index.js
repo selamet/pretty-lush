@@ -13,6 +13,7 @@ import { THEMES, flipTheme } from "../editor-themes.js";
 import { TEXT_TOOLS } from "./text-tools.js";
 import { CONVERSIONS } from "../convert/index.js";
 import { TYPEGEN_TARGETS } from "../codegen/index.js";
+import { CURL_TARGETS } from "../curl/index.js";
 import { ID_KINDS } from "../text-utils/ids.js";
 
 /**
@@ -26,6 +27,7 @@ import { ID_KINDS } from "../text-utils/ids.js";
  *   selectLang(id), runTextUtil(label, fn), openToolModal(tool),
  *   convert({ from, to }) — data-format conversion of the current input,
  *   generateTypes(targetId) — show types generated from the JSON input,
+ *   convertCurl(targetId) — show code converted from the cURL input,
  *   toggleSchema() — JSON Schema validation panel on / off,
  *   generateSchema() — replace the schema with one inferred from the input,
  *   searchTree() — focus the search box of the JSON tree view,
@@ -146,6 +148,14 @@ export function buildCommands({
       group: "Generate types",
       keywords: `generate types interface schema model codegen ${t.id} ${t.lang} json`,
       run: () => actions.generateTypes(t.id),
+    })),
+    // cURL command in the input → code, one entry per target.
+    ...CURL_TARGETS.map((t) => ({
+      id: `curl-${t.id}`,
+      label: `Convert cURL to ${t.label}`,
+      group: "cURL",
+      keywords: `curl http request convert code ${t.id} ${t.lang} fetch axios python requests`,
+      run: () => actions.convertCurl(t.id),
     })),
     // JSON Schema validation of the JSON input (Schema panel).
     {

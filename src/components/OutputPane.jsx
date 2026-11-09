@@ -10,19 +10,23 @@ import CopyButton from "./CopyButton.jsx";
 import FullscreenButton from "./FullscreenButton.jsx";
 import ConvertMenu from "./ConvertMenu.jsx";
 import TypegenBar from "./TypegenBar.jsx";
+import CurlBar from "./CurlBar.jsx";
 import { outputFilename } from "../output/filename.js";
 import { jsonToCsv } from "../convert/csv.js";
 import { getTypegenTarget } from "../codegen/index.js";
+import { getCurlTarget } from "../curl/index.js";
 
 const VIEW_LABELS = { tree: "Tree", code: "Code", table: "Table" };
 
 // Right pane of the "Format" view: formatted output (code / JSON tree /
 // JSON table), the data-format Convert menu, "Generate types" (JSON only),
+// "cURL → code" (when the input is a cURL command),
 // export actions and the fullscreen toggle.
 //
 // While `typegen` is set ({ target, rootName, code, error }) the pane shows
 // the generated code instead of the formatted output; copy / download /
-// image act on it.
+// image act on it. `curl` ({ target, code, warnings, error }) does the same
+// for code converted from a cURL command in the input.
 export default function OutputPane({
   language,
   theme,
@@ -46,6 +50,10 @@ export default function OutputPane({
   typegenAvailable = false,
   onTypegenToggle,
   onTypegenChange,
+  curl = null,
+  curlAvailable = false,
+  onCurlToggle,
+  onCurlChange,
 }) {
   const captureRef = useRef(null);
   const tableCsv = useMemo(() => {
@@ -56,11 +64,16 @@ export default function OutputPane({
       return "";
     }
   }, [outputView, jsonTableData]);
-  const typegenTarget = typegen ? getTypegenTarget(typegen.target) : null;
-  const shownText = typegen ? typegen.code : output;
-  const shownError = typegen ? typegen.error : error;
-  const shownLang = typegen ? typegenTarget.lang : language.id;
-  const shownLabel = typegen ? typegenTarget.label : language.label;
+  // Generated code shown instead of the formatted output, if any.
+  const gen = typegen
+    ? { ...typegen, title: "Types", target: getTypegenTarget(typegen.target), source: "JSON" }
+    : curl
+      ? { ...curl, title: "Code", target: getCurlTarget(curl.target), source: "cURL" }
+      : null;
+  const shownText = gen ? gen.code : output;
+  const shownError = gen ? gen.error : error;
+  const shownLang = gen ? gen.target.lang : language.id;
+  const shownLabel = gen ? gen.target.label : language.label;
   const outLines = shownText ? shownText.split("\n").length : 0;
   const views = [
     jsonTreeData && "tree",
@@ -71,10 +84,10 @@ export default function OutputPane({
   return (
     <div className={`pane ${fullscreen ? "is-fullscreen" : ""}`}>
       <div className="pane-head">
-        <span className="title">{typegen ? "Types" : "Output"}</span>
+        <span className="title">{gen ? gen.title : "Output"}</span>
         <div className="pane-actions">
           <span className="meta">{shownText ? `${outLines} lines` : "—"}</span>
-          {!typegen && (jsonTreeData || jsonTableData) && !error && (
+          {!gen && (jsonTreeData || jsonTableData) && !error && (
             <div className="view-toggle small" role="tablist" aria-label="Output view">
               {views.map((v) => (
                 <button
@@ -90,7 +103,7 @@ export default function OutputPane({
               ))}
             </div>
           )}
-          {!typegen && tableCsv && !error && (
+          {!gen && tableCsv && !error && (
             <DownloadButton
               text={tableCsv}
               filename="table.csv"
@@ -99,14 +112,30 @@ export default function OutputPane({
               mime="text/csv"
             />
           )}
-          {!typegen && (
+          {!gen && (
             <ConvertMenu
               conversions={conversions}
               onConvert={onConvert}
               disabled={convertDisabled}
             />
           )}
-          {typegenAvailable && (
+          {curlAvailable && !typegen && (
+            <button
+              type="button"
+              className={`copy-btn types-btn curl-btn ${curl ? "is-on" : ""}`}
+              aria-pressed={!!curl}
+              aria-label="Convert cURL command to code"
+              title={curl ? "Back to formatted output" : "Convert cURL to fetch / axios / Python requests"}
+              onClick={onCurlToggle}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="16 18 22 12 16 6" />
+                <polyline points="8 6 2 12 8 18" />
+              </svg>
+              <span className="types-btn-text">Code</span>
+            </button>
+          )}
+          {typegenAvailable && !curl && (
             <button
               type="button"
               className={`copy-btn types-btn ${typegen ? "is-on" : ""}`}
@@ -129,7 +158,7 @@ export default function OutputPane({
           />
           <DownloadButton
             text={shownText}
-            filename={typegen ? typegenTarget.filename : outputFilename(language)}
+            filename={gen ? gen.target.filename : outputFilename(language)}
           />
           <CopyMarkdownButton text={shownText} lang={shownLang} />
           <CopyButton text={shownText} />
@@ -144,15 +173,23 @@ export default function OutputPane({
           onClose={onTypegenToggle}
         />
       )}
+      {curl && (
+        <CurlBar
+          target={curl.target}
+          warnings={curl.error ? [] : curl.warnings}
+          onChange={onCurlChange}
+          onClose={onCurlToggle}
+        />
+      )}
       <div className="editor-host" ref={captureRef}>
-        {typegen ? (
-          typegen.error ? (
-            <ErrorCard error={typegen.error} language="JSON" />
+        {gen ? (
+          gen.error ? (
+            <ErrorCard error={gen.error} language={gen.source} />
           ) : (
             <CodeEditor
               theme={theme}
-              value={typegen.code}
-              language={typegenTarget.lang}
+              value={gen.code}
+              language={gen.target.lang}
               readOnly
             />
           )

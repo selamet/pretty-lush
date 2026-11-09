@@ -1,18 +1,29 @@
 import { getLanguage } from "../languages/groups.js";
 
 // "Looks like <Language>. Switch?" banner shown when detection disagrees
-// with the selected language.
-export default function SuggestionBanner({ suggestion, onAccept, onDismiss }) {
+// with the selected language. `children` / `actionLabel` override the
+// message and button for other suggestions (e.g. "cURL command → code").
+export default function SuggestionBanner({
+  suggestion,
+  onAccept,
+  onDismiss,
+  children,
+  actionLabel = "Switch",
+}) {
   if (!suggestion) return null;
   return (
-    <div className="suggestion">
+    <div className="suggestion" role="status">
       <span>
-        Looks like{" "}
-        <b>{getLanguage(suggestion.lang)?.label || suggestion.lang}</b>
-        . Switch?
+        {children ?? (
+          <>
+            Looks like{" "}
+            <b>{getLanguage(suggestion.lang)?.label || suggestion.lang}</b>
+            . Switch?
+          </>
+        )}
       </span>
       <button type="button" className="suggestion-btn" onClick={onAccept}>
-        Switch
+        {actionLabel}
       </button>
       <button
         type="button"

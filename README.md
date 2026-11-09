@@ -57,6 +57,12 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 - Shapes are merged across array elements: keys missing in some elements become optional, `null` makes a field nullable, mixed primitives become unions, ints vs floats are told apart (`int` / `float`, `z.number().int()`), ISO date-time strings become `datetime` in Pydantic
 - Nested objects become named types (`addresses: [...]` → `Address`), identical shapes share one type, name collisions are numbered; non-identifier keys are quoted (TS / Zod) or get `Field(alias=…)` (Pydantic)
 
+**cURL → code**
+
+- Paste a cURL command (Chrome / Firefox "Copy as cURL", bash or Windows cmd, Postman snippets) and a banner offers to convert it; the **Code** button in the output pane (or ⌘K → "Convert cURL to fetch / axios / Python requests") shows the code live, with a fetch / axios / requests switcher; copy, download (`request.js` / `request.py`) and image export work on it
+- Shell words are parsed like a shell: single / double quotes, `$'…'` ANSI-C strings, `\` and `^` line continuations
+- Supports `-X`, URL / `--url`, `-H`, `-d` / `--data-raw` / `--data-binary` / `--data-urlencode` (joined with `&`, implicit POST, form content type), `--json`, `-F` (multipart, `@file` parts), `-u`, `-b`, `-A`, `-e`, `-G`, `-I`, `-k`, `-m`, `-L`, `--compressed`; JSON bodies are pretty-printed (`JSON.stringify({…})`, axios `data`, requests `json=`), `-u` becomes basic auth / `auth=`, `-k` becomes `verify=False` / an https agent; options that can't be expressed are listed in a small notice
+
 **Compare mode**
 
 - A standalone two-snippet diff (A vs B) with its own pair of editors, live diff below, Swap and Clear actions
@@ -245,6 +251,7 @@ pretty-lush/
 │   │   └── settings.js · workspace.js · history.js · layout.js
 │   ├── convert/                     # data converters (JSON ↔ YAML ↔ TOML ↔ CSV, RFC 4180 CSV)
 │   ├── codegen/                     # JSON → TypeScript / Zod / Pydantic (schema inference + emitters)
+│   ├── curl/                        # cURL → fetch / axios / requests (shell tokenizer, flag parser, emitters)
 │   ├── schema/                      # JSON Schema validation (lazy Ajv), JSON pointer → source offset, schema generation
 │   ├── regex/                       # Regex tester: pure match model + worker protocol, worker runner with timeout, CodeMirror highlights
 │   ├── output/                      # pure output helpers (JSON tree model + search, JSONPath build / parse, table, filenames)

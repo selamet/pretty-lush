@@ -5043,3 +5043,331 @@ button {
     max-height: calc(100vh - 4vh - 16px);
   }
 }
+
+/* ── snippet tabs (#18) ──────────────────────────────── */
+.main-area {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.main-area > .editor {
+  flex: 1;
+}
+
+.tabbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px 0;
+  min-width: 0;
+}
+
+.tabbar + .editor {
+  padding-top: 8px;
+}
+
+.tabbar-scroll {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  touch-action: pan-x;
+  --fade-l: 0px;
+  --fade-r: 0px;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--fade-l),
+    #000 calc(100% - var(--fade-r)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--fade-l),
+    #000 calc(100% - var(--fade-r)),
+    transparent 100%
+  );
+}
+
+.tabbar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.tabbar-scroll.fade-start {
+  --fade-l: 28px;
+}
+
+.tabbar-scroll.fade-end {
+  --fade-r: 28px;
+}
+
+.tab {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  max-width: 220px;
+  padding: 0 6px 0 9px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  outline: none;
+}
+
+.tab:hover {
+  background: var(--surface-2);
+}
+
+.tab.is-active {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.tab.is-dragging {
+  z-index: 1;
+  border-color: var(--line-strong);
+  box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.25);
+  cursor: grabbing;
+}
+
+body.is-tab-dragging,
+body.is-tab-dragging * {
+  cursor: grabbing !important;
+}
+
+.tab-badge {
+  flex: none;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.tab.is-active .tab-badge {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tab-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-rename {
+  min-width: 4ch;
+  max-width: 24ch;
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  outline: none;
+}
+
+.tab-close {
+  appearance: none;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.tab:hover .tab-close,
+.tab.is-active .tab-close,
+.tab:focus-visible .tab-close {
+  opacity: 1;
+}
+
+.tab-close:hover {
+  background: var(--line);
+  color: var(--ink);
+}
+
+.tab.is-renaming .tab-close {
+  display: none;
+}
+
+.tabbar-add {
+  appearance: none;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.tabbar-add:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.tabbar-add:focus-visible,
+.tab-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.tab-menu {
+  position: fixed;
+  z-index: 240;
+  min-width: 180px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.02),
+    0 12px 32px -8px rgba(0, 0, 0, 0.18);
+}
+
+.tab-menu-item {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tab-menu-item:hover:not(:disabled),
+.tab-menu-item:focus-visible {
+  background: var(--surface-2);
+  outline: none;
+}
+
+.tab-menu-item:disabled {
+  color: var(--muted);
+  opacity: 0.6;
+  cursor: default;
+}
+
+.tab-menu-item kbd {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.tab-menu-sep {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--line);
+}
+
+/* Toast with an action button ("Undo"). */
+.toast.has-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 6px 14px;
+}
+
+.toast-action {
+  appearance: none;
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toast-action:hover {
+  background: color-mix(in srgb, currentColor 26%, transparent);
+}
+
+.toast-action:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+@media (hover: none) {
+  .tab:not(.is-active) .tab-close {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  /* Sidebar (and its resizer) are hidden: the main area fills the column. */
+  .workspace > .resizer {
+    display: none;
+  }
+
+  .tabbar {
+    padding: 8px 8px 0;
+  }
+
+  .tab {
+    height: 36px;
+    max-width: 180px;
+  }
+
+  .tab-close {
+    width: 26px;
+    height: 26px;
+  }
+
+  .tabbar-add {
+    width: 36px;
+    height: 36px;
+  }
+}

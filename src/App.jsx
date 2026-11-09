@@ -2,11 +2,7 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import { EditorSelection } from "@codemirror/state";
 import { formatCode } from "./formatters/index.js";
 import { FORMAT_LABELS, conversionsFrom, convertData } from "./convert/index.js";
-import {
-  DEFAULT_ROOT_NAME,
-  generateTypes,
-  getTypegenTarget,
-} from "./codegen/index.js";
+import { generateTypes, getTypegenTarget } from "./codegen/index.js";
 import { convertCurl, getCurlTarget, looksLikeCurl } from "./curl/index.js";
 import CommandPalette from "./components/CommandPalette.jsx";
 import ShareDialog, { PasswordPrompt } from "./components/ShareDialog.jsx";
@@ -25,6 +21,7 @@ import RegexPanes from "./components/RegexPanes.jsx";
 import InputPane from "./components/InputPane.jsx";
 import OutputPane from "./components/OutputPane.jsx";
 import StatusBar from "./components/StatusBar.jsx";
+import TabBar from "./components/TabBar.jsx";
 import { buildCommands } from "./commands/index.js";
 import { TEXT_TOOLS } from "./commands/text-tools.js";
 import { flipTheme } from "./editor-themes.js";
@@ -32,6 +29,7 @@ import { SAMPLES } from "./languages/registry.js";
 import { getLanguage } from "./languages/groups.js";
 import { detectLangFromFilename } from "./languages/detect.js";
 import { MAX_INPUT_BYTES } from "./state/workspace.js";
+import { MAX_TABS, isPristine } from "./state/tabs.js";
 import { MAX_HISTORY_ITEM, createHistoryEntry } from "./state/history.js";
 import {
   RESIZER_PX,
@@ -50,7 +48,7 @@ import { useProfiles } from "./hooks/useProfiles.js";
 import { FORMAT_SETTING_KEYS } from "./state/settings.js";
 import { useHistory } from "./hooks/useHistory.js";
 import { useLayout } from "./hooks/useLayout.js";
-import { useWorkspace } from "./hooks/useWorkspace.js";
+import { useTabs } from "./hooks/useTabs.js";
 import { useCompareSnippets } from "./hooks/useCompareSnippets.js";
 import { useRegexTester } from "./hooks/useRegexTester.js";
 import { useToast } from "./hooks/useToast.js";
@@ -75,9 +73,32 @@ import {
 // Persisted state lives in src/hooks/, pure logic in src/state/,
 // ⌘K commands in src/commands/, UI pieces in src/components/.
 export default function App() {
-  const { lang, setLang, inputs, setInputs } = useWorkspace();
-  const [output, setOutput] = useState("");
-  const [error, setError] = useState(null);
+  // Snippet tabs: each owns its language, inputs, output and output-view
+  // state; the setters below write to the tab that was active when they
+  // were rendered (see hooks/useTabs.js). Settings, profiles, Compare and
+  // Regex stay global.
+  const ws = useTabs();
+  const {
+    lang,
+    inputs,
+    output,
+    error,
+    outputFilter,
+    jsonPath,
+    jsonView,
+    typegen,
+    curlState,
+    setLang,
+    setInputs,
+    setOutput,
+    setError,
+    setOutputFilter,
+    setJsonPath,
+    setJsonView,
+    setTypegen,
+    setCurlState,
+  } = ws;
+  const [renamingTabId, setRenamingTabId] = useState(null);
   const [isFormatting, setIsFormatting] = useState(false);
   const { settings, setSettings, themeMeta } = useSettings();
   // false | true | "save" ("save" opens the popover's save-as-profile input).
@@ -93,11 +114,9 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [layout, setLayout] = useLayout();
   const editorRef = useRef(null);
-  const [jsonPath, setJsonPath] = useState("");
-  const [jsonView, setJsonView] = useState("tree"); // 'tree' | 'code' | 'table'
-  // JSONPath filter behind the current output: { output, expression, bases },
-  // so the tree can map nodes of filtered output back to input paths.
-  const [outputFilter, setOutputFilter] = useState(null);
+  // Per tab (see above): jsonView 'tree' | 'code' | 'table'; outputFilter is
+  // the JSONPath filter behind the current output { output, expression,
+  // bases }, so the tree can map nodes of filtered output back to input paths.
   const [treeSearchRequested, setTreeSearchRequested] = useState(false);
   const clearTreeSearchRequest = useCallback(() => setTreeSearchRequested(false), []);
   const [toolModal, setToolModal] = useState(null); // { id, result } | null
@@ -107,14 +126,8 @@ export default function App() {
   const inputViewRef = useRef(null);
   const inputEditorUsed = useRef(false);
   const [outputFullscreen, setOutputFullscreen] = useState(false);
-  // "Generate types" mode of the output pane (JSON input only).
-  const [typegen, setTypegen] = useState({
-    open: false,
-    target: "typescript",
-    rootName: DEFAULT_ROOT_NAME,
-  });
-  // "cURL → code" mode of the output pane (input is a cURL command).
-  const [curlState, setCurlState] = useState({ open: false, target: "fetch" });
+  // Per tab: `typegen` is the "Generate types" mode of the output pane (JSON
+  // input only), `curlState` the "cURL → code" mode (input is a cURL command).
 
   // Landing page the app was opened on (/json-formatter, /regex-tester, …).
   // A share link (#s= / #p=) wins: it picks its own language.
@@ -152,10 +165,19 @@ export default function App() {
   const share = useShare({
     lang,
     input,
-    setLang,
-    setInputs,
-    setOutput,
-    setError,
+    openSnippet: (to, text) => {
+      const reuse = isPristine(ws.activeTab);
+      if (!reuse && !ws.canAdd) {
+        // At the cap: load into the current tab, like before tabs existed.
+        setLang(to);
+        setInputs((prev) => ({ ...prev, [to]: text }));
+        setOutput("");
+        setError(null);
+        return;
+      }
+      ws.dispatch({ type: "openSnippet", lang: to, input: text });
+      if (!reuse) setToast({ kind: "ok", message: "Shared snippet opened in a new tab" });
+    },
     notify: setToast,
   });
   const { suggestion, setSuggestion, dismissSuggestion } =
@@ -169,6 +191,111 @@ export default function App() {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
       e.preventDefault();
       setPaletteOpen((v) => !v);
+    }
+  });
+
+  // ── snippet tabs ──────────────────────────────────────
+  // Compare and Regex are global views: tab actions go back to the split
+  // view so the tab you act on is visible.
+  function leaveGlobalViews() {
+    if (viewMode === "compare" || viewMode === "regex") setViewMode("split");
+  }
+
+  function warnTabCap() {
+    setToast({ kind: "warn", message: `Up to ${MAX_TABS} tabs — close one to open another` });
+  }
+
+  function newTab() {
+    if (!ws.canAdd) {
+      warnTabCap();
+      return;
+    }
+    leaveGlobalViews();
+    setTreeSearchRequested(false);
+    ws.dispatch({ type: "add", lang });
+  }
+
+  function switchTab(id) {
+    leaveGlobalViews();
+    setTreeSearchRequested(false);
+    ws.dispatch({ type: "activate", id });
+  }
+
+  function cycleTab(delta) {
+    leaveGlobalViews();
+    setTreeSearchRequested(false);
+    ws.dispatch({ type: "cycle", delta });
+  }
+
+  function reopenTab() {
+    if (!ws.closedCount) {
+      setToast({ kind: "warn", message: "No recently closed tabs" });
+      return;
+    }
+    if (!ws.canAdd) {
+      warnTabCap();
+      return;
+    }
+    leaveGlobalViews();
+    ws.dispatch({ type: "reopen" });
+  }
+
+  // No confirm dialog: closing a tab with content offers Undo instead
+  // (also Alt+Shift+T / ⌘K → "Reopen closed tab").
+  function closeTab(id = ws.activeId) {
+    const tab = ws.tabs.find((t) => t.id === id);
+    if (!tab) return;
+    const label = ws.labels[id];
+    setRenamingTabId((r) => (r === id ? null : r));
+    ws.dispatch({ type: "close", id });
+    if (!isPristine(tab)) {
+      setToast({
+        kind: "ok",
+        message: `Closed “${label}”`,
+        action: { label: "Undo", run: () => ws.dispatch({ type: "reopen" }) },
+        duration: 8000,
+      });
+    }
+  }
+
+  function renameTab(id = ws.activeId) {
+    leaveGlobalViews();
+    if (id !== ws.activeId) ws.dispatch({ type: "activate", id });
+    setRenamingTabId(id);
+  }
+
+  // Tab shortcuts. ⌘T / ⌘W / ⌘⇧T belong to the browser and can't be
+  // intercepted reliably, so tabs use Alt (matched by `code`, since Option
+  // changes `key` on macOS). AltGr (Ctrl+Alt) is left alone for typing.
+  const modalOpen =
+    paletteOpen || !!toolModal || importOpen || share.shareDialogOpen || !!share.pwPrompt;
+  useWindowKeydown((e) => {
+    if (e.defaultPrevented || modalOpen) return;
+    if (e.ctrlKey && !e.metaKey && !e.altKey && e.key === "Tab") {
+      e.preventDefault();
+      cycleTab(e.shiftKey ? -1 : 1);
+      return;
+    }
+    if (e.key === "F2" && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+      if (renamingTabId || viewMode === "compare" || viewMode === "regex") return;
+      e.preventDefault();
+      renameTab();
+      return;
+    }
+    if (!e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.code === "KeyT") {
+      e.preventDefault();
+      if (e.shiftKey) reopenTab();
+      else newTab();
+    } else if (e.code === "KeyW" && !e.shiftKey) {
+      e.preventDefault();
+      closeTab();
+    } else if (/^Digit[1-9]$/.test(e.code) && !e.shiftKey) {
+      e.preventDefault();
+      leaveGlobalViews();
+      const n = Number(e.code.slice(5));
+      // Like browsers: Alt+9 is always the last tab.
+      ws.dispatch({ type: "activateIndex", index: n === 9 ? -1 : n - 1 });
     }
   });
 
@@ -759,8 +886,18 @@ export default function App() {
         setToast({ kind: "ok", message: `Switched to profile "${name}"` });
       },
       saveProfile: () => setSettingsOpen("save"),
+      newTab,
+      closeTab: () => closeTab(),
+      reopenTab,
+      renameTab: () => renameTab(),
+      switchTab,
+      cycleTab,
     },
     profiles: { names: profiles.names, active: profiles.active },
+    tabs: {
+      list: ws.tabs.map((t) => ({ id: t.id, label: ws.labels[t.id] })),
+      activeId: ws.activeId,
+    },
   });
 
   function applyImportedConfig(result) {
@@ -785,7 +922,7 @@ export default function App() {
         commands={commands}
       />
 
-      <Toast toast={toast} />
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
       <ShareDialog
         open={share.shareDialogOpen}
         onClose={share.closeShareDialog}
@@ -881,8 +1018,47 @@ export default function App() {
           startValue={layout.sidebarW}
         />
 
+        <div className="main-area">
+        {(viewMode === "split" || viewMode === "diff") && (
+          <TabBar
+            tabs={ws.tabs}
+            activeId={ws.activeId}
+            labels={ws.labels}
+            panelId="snippet-panel"
+            renamingId={renamingTabId}
+            onRenamingChange={setRenamingTabId}
+            onActivate={switchTab}
+            onAdd={newTab}
+            onClose={closeTab}
+            onRename={(id, name) => ws.dispatch({ type: "rename", id, name })}
+            onMove={(id, to) => ws.dispatch({ type: "move", id, to })}
+            onDuplicate={(id) =>
+              ws.canAdd ? ws.dispatch({ type: "duplicate", id }) : warnTabCap()
+            }
+            onCloseOthers={(id) => {
+              const n = ws.tabs.length - 1;
+              ws.dispatch({ type: "closeOthers", id });
+              setToast({
+                kind: "ok",
+                message: `Closed ${n} ${n === 1 ? "tab" : "tabs"}`,
+                action: {
+                  label: "Undo",
+                  run: () => {
+                    for (let i = 0; i < n; i++) ws.dispatch({ type: "reopen" });
+                  },
+                },
+                duration: 8000,
+              });
+            }}
+          />
+        )}
         <section
           ref={editorRef}
+          id="snippet-panel"
+          role={viewMode === "split" || viewMode === "diff" ? "tabpanel" : undefined}
+          aria-labelledby={
+            viewMode === "split" || viewMode === "diff" ? `tab-${ws.activeId}` : undefined
+          }
           className={`editor ${
             viewMode === "diff"
               ? "is-diff"
@@ -944,6 +1120,7 @@ export default function App() {
                     : null
                 }
                 onSchemaToggle={toggleSchema}
+                editorKey={ws.activeId}
                 onViewReady={(view) => {
                   inputViewRef.current = view;
                   inputEditorUsed.current = view.hasFocus;
@@ -1009,6 +1186,7 @@ export default function App() {
             </>
           )}
         </section>
+        </div>
       </div>
 
       <StatusBar

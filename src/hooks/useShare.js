@@ -16,17 +16,9 @@ async function copyToClipboard(text) {
 //
 // Creating: URL-only links (`#s=…`, snippet in the fragment) or encrypted
 // server pastes (`#p=<id>.<key>`). Loading: on mount, a `#s=` / `#p=` hash is
-// consumed and its snippet loaded into the editor, prompting for a password
-// when the paste has one.
-export function useShare({
-  lang,
-  input,
-  setLang,
-  setInputs,
-  setOutput,
-  setError,
-  notify,
-}) {
+// consumed and its snippet handed to `openSnippet(lang, input)` (App opens it
+// in a new tab), prompting for a password when the paste has one.
+export function useShare({ lang, input, openSnippet, notify }) {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareBusy, setShareBusy] = useState(false);
   const [shareError, setShareError] = useState(null);
@@ -38,14 +30,12 @@ export function useShare({
     if (hash.startsWith("#s=")) {
       const decoded = decodeShare(hash.slice(3));
       if (!decoded) return;
-      if (decoded.lang && isKnownLang(decoded.lang)) {
-        setLang(decoded.lang);
-      }
       if (typeof decoded.input === "string") {
-        setInputs((prev) => ({ ...prev, [decoded.lang || lang]: decoded.input }));
+        openSnippet(
+          decoded.lang && isKnownLang(decoded.lang) ? decoded.lang : lang,
+          decoded.input
+        );
       }
-      setOutput("");
-      setError(null);
       window.history.replaceState(null, "", window.location.pathname);
     } else if (hash.startsWith("#p=")) {
       const rest = hash.slice(3);
@@ -89,10 +79,7 @@ export function useShare({
         });
         const targetLang =
           record.lang && isKnownLang(record.lang) ? record.lang : lang;
-        setLang(targetLang);
-        setInputs((prev) => ({ ...prev, [targetLang]: plaintext }));
-        setOutput("");
-        setError(null);
+        openSnippet(targetLang, plaintext);
         setPwPrompt(null);
         notify({ kind: "ok", message: "Shared snippet loaded" });
       } catch (e) {

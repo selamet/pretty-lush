@@ -37,9 +37,13 @@ import { ID_KINDS } from "../text-utils/ids.js";
  *   openIdGenerator() — open the "Generate N IDs" modal,
  *   importConfig() — open the "Import formatter config" dialog,
  *   switchProfile(name) — activate a settings profile,
- *   saveProfile() — open the settings popover's "save as profile" input
+ *   saveProfile() — open the settings popover's "save as profile" input,
+ *   newTab(), closeTab(), reopenTab(), renameTab() — act on the active tab,
+ *   switchTab(id), cycleTab(delta) — snippet tab navigation
  * @param {boolean} [ctx.schemaOn]  schema validation currently shown
  * @param {{ names: string[], active: string }} [ctx.profiles]  settings profiles
+ * @param {{ list: { id: string, label: string }[], activeId: string }} [ctx.tabs]
+ *   snippet tabs, for the "Go to tab: …" commands
  */
 export function buildCommands({
   viewMode,
@@ -48,8 +52,10 @@ export function buildCommands({
   themeMode,
   settings,
   profiles = { names: [], active: null },
+  tabs = { list: [], activeId: null },
   actions,
 }) {
+  const multipleTabs = tabs.list.length > 1;
   return [
     {
       id: "format",
@@ -117,6 +123,66 @@ export function buildCommands({
       keywords: "ruff check problems diagnostics flake8 python",
       run: () => actions.updateSettings((s) => ({ ...s, lint: !s.lint })),
     },
+    {
+      id: "tab-new",
+      label: "New tab",
+      group: "Tabs",
+      shortcut: "Alt+T",
+      keywords: "snippet open add",
+      run: () => actions.newTab(),
+    },
+    {
+      id: "tab-close",
+      label: "Close tab",
+      group: "Tabs",
+      shortcut: "Alt+W",
+      keywords: "snippet remove",
+      run: () => actions.closeTab(),
+    },
+    {
+      id: "tab-reopen",
+      label: "Reopen closed tab",
+      group: "Tabs",
+      shortcut: "Alt+⇧T",
+      keywords: "snippet undo restore",
+      run: () => actions.reopenTab(),
+    },
+    {
+      id: "tab-rename",
+      label: "Rename tab",
+      group: "Tabs",
+      shortcut: "F2",
+      keywords: "snippet name title",
+      run: () => actions.renameTab(),
+    },
+    ...(multipleTabs
+      ? [
+          {
+            id: "tab-next",
+            label: "Next tab",
+            group: "Tabs",
+            shortcut: "Ctrl+Tab",
+            keywords: "snippet switch",
+            run: () => actions.cycleTab(1),
+          },
+          {
+            id: "tab-prev",
+            label: "Previous tab",
+            group: "Tabs",
+            shortcut: "Ctrl+⇧Tab",
+            keywords: "snippet switch",
+            run: () => actions.cycleTab(-1),
+          },
+        ]
+      : []),
+    ...tabs.list.map((t, i) => ({
+      id: `tab-go-${t.id}`,
+      label: `Go to tab: ${t.label}${t.id === tabs.activeId ? " (active)" : ""}`,
+      group: "Tabs",
+      shortcut: i < 8 ? `Alt+${i + 1}` : undefined,
+      keywords: "snippet switch",
+      run: () => actions.switchTab(t.id),
+    })),
     {
       id: "import-config",
       label: "Import formatter config…",

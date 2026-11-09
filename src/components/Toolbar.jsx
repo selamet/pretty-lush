@@ -1,5 +1,6 @@
 import { LANGUAGES } from "../languages/registry.js";
 import SettingsPopover from "./SettingsPopover.jsx";
+import { DEFAULT_PROFILE } from "../state/profiles.js";
 
 // Toolbar under the header: view-mode tabs, mobile language picker,
 // formatter options, "more options" popover, Share, Minify (JSON) and Format.
@@ -18,7 +19,10 @@ export default function Toolbar({
   onFormat,
   onMinify,
   isFormatting,
+  profiles,
+  onImportConfig,
 }) {
+  const customProfile = profiles.active !== DEFAULT_PROFILE;
   return (
     <div className="toolbar">
       <div className="seg-tabs" role="tablist" aria-label="View mode">
@@ -143,10 +147,11 @@ export default function Toolbar({
         <div className="settings-wrap">
           <button
             type="button"
-            className="icon-btn"
+            className={`icon-btn settings-btn ${customProfile ? "has-profile" : ""}`}
             onClick={() => setSettingsOpen((v) => !v)}
-            aria-label="More options"
-            title="More options"
+            aria-label={`More options (profile: ${profiles.active})`}
+            aria-expanded={!!settingsOpen}
+            title={`More options · profile: ${profiles.active}`}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <line x1="4" y1="21" x2="4" y2="14" />
@@ -159,12 +164,23 @@ export default function Toolbar({
               <line x1="9" y1="8" x2="15" y2="8" />
               <line x1="17" y1="16" x2="23" y2="16" />
             </svg>
+            {customProfile && (
+              <span className="profile-chip" aria-hidden="true">
+                {profiles.active}
+              </span>
+            )}
           </button>
           {settingsOpen && (
             <SettingsPopover
               settings={settings}
               onChange={setSettings}
               onClose={() => setSettingsOpen(false)}
+              profiles={profiles}
+              startSaving={settingsOpen === "save"}
+              onImport={() => {
+                setSettingsOpen(false);
+                onImportConfig();
+              }}
             />
           )}
         </div>

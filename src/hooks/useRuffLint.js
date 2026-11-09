@@ -21,7 +21,7 @@ export function useRuffLint({ enabled, input, settings }) {
   const [result, setResult] = useState(IDLE);
   const runId = useRef(0);
   const hasRun = useRef(false);
-  const { indent, lineWidth, quotes } = settings;
+  const { indent, lineWidth, quotes, pythonIndent, pythonLineWidth, pythonQuotes } = settings;
 
   useEffect(() => {
     if (!enabled) {
@@ -36,7 +36,14 @@ export function useRuffLint({ enabled, input, settings }) {
     const t = setTimeout(async () => {
       hasRun.current = true;
       try {
-        const raw = await lintPython(input, { indent, lineWidth, quotes });
+        const raw = await lintPython(input, {
+          indent,
+          lineWidth,
+          quotes,
+          pythonIndent,
+          pythonLineWidth,
+          pythonQuotes,
+        });
         if (id !== runId.current) return;
         setResult({ diagnostics: mapRuffDiagnostics(raw, input), status: "ready" });
       } catch {
@@ -45,7 +52,7 @@ export function useRuffLint({ enabled, input, settings }) {
       }
     }, delay);
     return () => clearTimeout(t);
-  }, [enabled, input, indent, lineWidth, quotes]);
+  }, [enabled, input, indent, lineWidth, quotes, pythonIndent, pythonLineWidth, pythonQuotes]);
 
   return enabled ? result : null;
 }

@@ -25,7 +25,9 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 - Drag-and-drop a file to load it (extension picks the language)
 - Side-by-side editor with syntax highlighting (CodeMirror 6)
 - Inline diff view between input and output
-- Configurable indent (2 / 4 / tab), line width, quote style
+- Configurable indent (2 / 4 / tab), line width, quote style; the settings popover adds Prettier's semicolons, trailing commas, bracket spacing, arrow parens, prose wrap and line endings
+- **Import your repo's config** — "Import config…" in the settings popover (or ⌘K → "Import formatter config…") takes a pasted, picked or dropped `.prettierrc` (JSON / YAML / TOML), `package.json` (`"prettier"` key), `.editorconfig` (`[*]`, plus `[*.py]` for Python) or `ruff.toml` / `pyproject.toml` (`[tool.ruff]` line-length, indent-width, `[format]` quote-style / indent-style). A review step lists every applied option and every ignored one with the reason (unknown, unsupported, invalid value, lint rules, overrides…) before you apply. Ruff options become Python-only overrides, so they don't change Prettier output
+- **Settings profiles** — save the current formatter options as a named profile, then switch, rename or delete from the settings popover or ⌘K ("Switch profile: …", "Save settings as profile…"). Your existing settings become the "Default" profile; the active profile follows your edits, shows on the toolbar's settings button, and persists across reloads
 - Auto-format on type (debounced) and Format-on-paste options
 - Local format history (last 20, click to restore)
 - **Python lint (Ruff)** — optional "Lint" toggle (or ⌘K → "Turn on Python lint") shows Ruff diagnostics as inline markers plus a collapsible problems list (code, message, line:col; click to jump). Reuses the already-loaded Ruff WASM, no extra download; the setting persists
@@ -239,18 +241,22 @@ pretty-lush/
 │   │   ├── InputPane · OutputPane · DiffPane · ComparePanes · RegexPanes
 │   │   ├── CopyButton · DownloadButton · ImageButton · FullscreenButton · CopyMarkdownButton
 │   │   ├── ErrorCard · JsonTree · JsonTable · DiffView · CodeEditor · Resizer
+│   │   ├── ImportConfigDialog        #   paste / drop a formatter config, review, apply
 │   │   ├── CommandPalette · ShareDialog · JwtModal · HashModal · IdsModal · CronModal · ToolModalHost (tool-modal registry)
 │   │   └── Toast · DropOverlay · BrandMark
 │   ├── hooks/                       # stateful logic, no markup
 │   │   ├── usePersistentState.js     #   useState mirrored to localStorage
 │   │   ├── useSettings.js            #   settings + theme chrome (data-theme, CSS vars)
+│   │   ├── useProfiles.js            #   named settings profiles on top of useSettings
 │   │   ├── useWorkspace.js           #   current language + per-language inputs
 │   │   ├── useHistory.js · useLayout.js · useCompareSnippets.js · useRegexTester.js
 │   │   ├── useShare.js               #   share dialog, link creation, #s= / #p= loading
 │   │   └── useToast.js · useLanguageSuggestion.js · useFileDrop.js · useWindowKeydown.js
 │   ├── state/                       # pure persistence + domain logic (unit-tested)
 │   │   ├── storage.js                #   STORAGE_KEYS + safe localStorage helpers
+│   │   ├── profiles.js               #   settings profiles: load / migrate, save, switch, rename, delete
 │   │   └── settings.js · workspace.js · history.js · layout.js
+│   ├── config-import/               # .prettierrc / package.json / .editorconfig / ruff.toml / pyproject.toml → settings patch + summary
 │   ├── convert/                     # data converters (JSON ↔ YAML ↔ TOML ↔ CSV, RFC 4180 CSV)
 │   ├── codegen/                     # JSON → TypeScript / Zod / Pydantic (schema inference + emitters)
 │   ├── curl/                        # cURL → fetch / axios / requests (shell tokenizer, flag parser, emitters)
@@ -274,12 +280,13 @@ Common changes stay local:
 - **New tool modal** (e.g. a decoder that shows a dialog) — add the component in `src/components/`, register it in `TOOL_MODALS` in `ToolModalHost.jsx`, and add a `text-tools.js` entry with `modal`, `decode` and `emptyMessage` (or `allowEmpty`).
 - **New language** — write `src/formatters/<lang>.js`, add a case to `src/formatters/index.js`, and register the entry in `src/languages/registry.js` + a lazy loader in `src/languages/codemirror.js`. The sidebar, mobile picker and palette pick it up automatically. Add its landing-page copy to `LANGUAGE_COPY` in `src/seo/routes.js` (a test fails until you do); the page and sitemap entry are generated at build.
 - **New landing page** — one entry in `TOOL_ROUTES` (`src/seo/routes.js`) with unique title / description / intro, plus a `case` for its `tool` in `applyLandingRoute` (`App.jsx`). `npm run build` writes `dist/<slug>/index.html` and the sitemap.
-- **New persisted setting** — add the default to `DEFAULT_SETTINGS` in `src/state/settings.js`; stored settings are merged over defaults, so existing users get it too.
+- **New persisted setting** — add the default to `DEFAULT_SETTINGS` in `src/state/settings.js`; stored settings are merged over defaults, so existing users get it too. If it shapes formatter output, also list it in `FORMAT_SETTING_KEYS` so profiles store it and auto-format reacts to it.
 
 State is stored in `localStorage` (keys live in `src/state/storage.js` and must never be renamed):
 
 - `pretty-lush:state:v1` — current language + per-language inputs
-- `pretty-lush:settings:v1` — indent, line width, quotes, editor theme, auto-format, format-on-paste
+- `pretty-lush:settings:v1` — indent, line width, quotes, Prettier / Python options, editor theme, auto-format, format-on-paste
+- `pretty-lush:profiles:v1` — named settings profiles + the active one
 - `pretty-lush:history:v1` — recent format entries
 - `pretty-lush:layout:v1` — sidebar width + input/output split ratio
 - `pretty-lush:compare:v1` — Compare mode A / B bodies

@@ -18,7 +18,7 @@ export default function StatusBar({ error, isFormatting, output, langLabel, sett
       <span className="spacer" />
       <span>
         {settings.indent === "tab" ? "tabs" : `${settings.indent} spaces`} ·{" "}
-        {settings.lineWidth} cols · utf-8 · lf
+        {settings.lineWidth} cols · utf-8 · {settings.endOfLine || "lf"}
       </span>
       <span className="status-hint">
         <kbd>⌘K</kbd> commands

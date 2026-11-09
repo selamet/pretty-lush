@@ -2,6 +2,7 @@
 // parser plugin on first use and cache by name so subsequent formats are
 // instantaneous.
 import { mapPrettierError } from "./errors.js";
+import { SETTING_CHOICES } from "../state/settings.js";
 
 let _core = null;
 async function getCore() {
@@ -72,22 +73,36 @@ async function pluginsFor(parser) {
   }
 }
 
+const choice = (key, value, fallback) =>
+  SETTING_CHOICES[key].includes(value) ? value : fallback;
+
+// Prettier options for the user's settings (without parser plugins). Missing
+// or invalid values fall back to Prettier's defaults.
+export function prettierOptions(parser, opts) {
+  const useTabs = opts.indent === "tab";
+  return {
+    parser,
+    tabWidth: useTabs ? 4 : Number(opts.indent) || 2,
+    useTabs,
+    printWidth: Number(opts.lineWidth) || 80,
+    singleQuote: opts.quotes === "single",
+    semi: opts.semi !== false,
+    trailingComma: choice("trailingComma", opts.trailingComma, "all"),
+    bracketSpacing: opts.bracketSpacing !== false,
+    arrowParens: choice("arrowParens", opts.arrowParens, "always"),
+    proseWrap: choice("proseWrap", opts.proseWrap, "preserve"),
+    endOfLine: choice("endOfLine", opts.endOfLine, "lf"),
+    // XML only: reflow freely so minified XML / SVG gets one element per
+    // line (the plugin's "strict" default cannot add whitespace between
+    // tags). Other parsers ignore this option.
+    xmlWhitespaceSensitivity: "ignore",
+  };
+}
+
 export async function formatWithPrettier(src, parser, opts) {
   const [core, plugins] = await Promise.all([getCore(), pluginsFor(parser)]);
-  const useTabs = opts.indent === "tab";
   try {
-    return await core.format(src, {
-      parser,
-      plugins,
-      tabWidth: useTabs ? 4 : Number(opts.indent) || 2,
-      useTabs,
-      printWidth: Number(opts.lineWidth) || 80,
-      singleQuote: opts.quotes === "single",
-      // XML only: reflow freely so minified XML / SVG gets one element per
-      // line (the plugin's "strict" default cannot add whitespace between
-      // tags). Other parsers ignore this option.
-      xmlWhitespaceSensitivity: "ignore",
-    });
+    return await core.format(src, { ...prettierOptions(parser, opts), plugins });
   } catch (e) {
     throw mapPrettierError(e);
   }

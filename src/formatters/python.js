@@ -22,27 +22,31 @@ async function initRuff() {
   return _initPromise;
 }
 
+// Ruff workspace settings for the user's settings. The python* overrides
+// (from an imported ruff.toml / pyproject.toml) win over the shared
+// indent / line width / quotes.
+export function ruffSettings(opts) {
+  const indent = opts.pythonIndent ?? opts.indent;
+  const quotes = opts.pythonQuotes ?? opts.quotes;
+  const useTabs = indent === "tab";
+  return {
+    "line-length": Number(opts.pythonLineWidth ?? opts.lineWidth) || 88,
+    "indent-width": useTabs ? 4 : Number(indent) || 4,
+    format: {
+      "indent-style": useTabs ? "tab" : "space",
+      "quote-style":
+        quotes === "single" ? "single" : quotes === "double" ? "double" : "preserve",
+    },
+  };
+}
+
 let _ws = null;
 let _wsKey = "";
 async function getWorkspace(opts) {
   const mod = await initRuff();
-  const useTabs = opts.indent === "tab";
-  const indentWidth = useTabs ? 4 : Number(opts.indent) || 4;
-  const key = `${opts.lineWidth}:${indentWidth}:${useTabs}:${opts.quotes}`;
+  const settings = ruffSettings(opts);
+  const key = JSON.stringify(settings);
   if (_ws && _wsKey === key) return _ws;
-  const settings = {
-    "line-length": Number(opts.lineWidth) || 88,
-    "indent-width": indentWidth,
-    format: {
-      "indent-style": useTabs ? "tab" : "space",
-      "quote-style":
-        opts.quotes === "single"
-          ? "single"
-          : opts.quotes === "double"
-            ? "double"
-            : "preserve",
-    },
-  };
   _ws = new mod.Workspace(settings, mod.PositionEncoding.Utf16);
   _wsKey = key;
   return _ws;

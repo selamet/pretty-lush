@@ -1,7 +1,8 @@
 import BrandMark from "./BrandMark.jsx";
 
-// App header: brand, ⌘K search trigger, GitHub link and light/dark toggle.
-export default function TopBar({ themeMode, onOpenPalette, onToggleTheme }) {
+// App header: brand, ⌘K search trigger, GitHub link, About / bookmarklet
+// dialog and light/dark toggle.
+export default function TopBar({ themeMode, onOpenPalette, onToggleTheme, onOpenAbout }) {
   return (
     <header className="topbar">
       <div className="brand">
@@ -49,6 +50,17 @@ export default function TopBar({ themeMode, onOpenPalette, onToggleTheme }) {
           </svg>
           <span>Star on GitHub</span>
         </a>
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={onOpenAbout}
+          aria-label="About Pretty Lush and the bookmarklet"
+          title="About · Get the bookmarklet"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
+        </button>
         <button
           type="button"
           className="icon-btn"

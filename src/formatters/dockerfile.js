@@ -55,16 +55,29 @@ export function formatDockerfile(src) {
   }
 
   const out = [];
+  let inContinuation = false;
   for (const raw of src.split("\n")) {
     const line = raw.replace(/\s+$/, "");
+    // Lines continuing a previous `\`-terminated instruction are arguments,
+    // not instructions: keep them verbatim apart from a uniform indent, so a
+    // word like `copy` at their start is never uppercased.
+    if (inContinuation) {
+      inContinuation = line.endsWith("\\");
+      out.push(line.trim() ? `    ${line.trim()}` : "");
+      continue;
+    }
     if (!line.trim()) { out.push(""); continue; }
     if (line.trim().startsWith("#")) { out.push(line.trim()); continue; }
+    inContinuation = line.endsWith("\\");
     const m = line.match(/^\s*(\S+)\s+(.*)$/);
     if (!m) { out.push(line.trim()); continue; }
     const word = m[1].toUpperCase();
     const rest = m[2].replace(/\s+/g, " ").trim();
 
-    if (DOCKER_INSTRUCTIONS.has(word)) {
+    if (!DOCKER_INSTRUCTIONS.has(word)) { out.push(line.trim()); continue; }
+
+    // Already split across lines by the author: only normalise the head line.
+    if (!inContinuation) {
       // JSON-form array (CMD, ENTRYPOINT): expand when the resulting line is too long.
       if (
         rest.startsWith("[") &&
@@ -92,11 +105,9 @@ export function formatDockerfile(src) {
         });
         continue;
       }
-
-      out.push(`${word} ${rest}`);
-    } else {
-      out.push(line.trim());
     }
+
+    out.push(`${word} ${rest}`);
   }
   return out.join("\n").replace(/\n{3,}/g, "\n\n").replace(/\n+$/, "") + "\n";
 }

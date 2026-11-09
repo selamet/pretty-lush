@@ -8,7 +8,18 @@ export {
   trimEachLine,
   collapseBlankLines,
 } from "./lines.js";
-export { toUpperCase, toLowerCase, toTitleCase } from "./case.js";
+export {
+  toUpperCase,
+  toLowerCase,
+  toTitleCase,
+  toCamelCase,
+  toPascalCase,
+  toSnakeCase,
+  toScreamingSnakeCase,
+  toKebabCase,
+  toDotCase,
+  toSentenceCase,
+} from "./case.js";
 export {
   base64Encode,
   base64Decode,

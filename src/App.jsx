@@ -1,4 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { EditorSelection } from "@codemirror/state";
 import { formatCode } from "./formatters/index.js";
 import { FORMAT_LABELS, conversionsFrom, convertData } from "./convert/index.js";
 import {
@@ -289,7 +290,35 @@ export default function App() {
   // Runs a ⌘K text transform (src/commands/text-tools.js) on the input. A
   // one-shot output transform: the output is not re-formatted until the
   // input or settings change (auto-format only reacts to those).
-  function runTextUtil(label, fn) {
+  // Applies a string transform to every non-empty selection range of the
+  // input editor, in place (one undoable change; the results stay
+  // selected). Returns false when there is no selection to work on.
+  function transformInputSelection(label, fn) {
+    const view = inputView();
+    if (!view || view.state.selection.ranges.every((r) => r.empty)) return false;
+    let tr;
+    try {
+      tr = view.state.changeByRange((range) => {
+        if (range.empty) return { range };
+        const insert = fn(view.state.sliceDoc(range.from, range.to));
+        if (typeof insert !== "string") throw new Error(`${label} can't be applied to a selection`);
+        return {
+          changes: { from: range.from, to: range.to, insert },
+          range: EditorSelection.range(range.from, range.from + insert.length),
+        };
+      });
+    } catch (e) {
+      setToast({ kind: "warn", message: e.message });
+      return true;
+    }
+    view.dispatch(tr, { scrollIntoView: true, userEvent: "input.transform" });
+    view.focus();
+    setToast({ kind: "ok", message: `${label} applied to selection` });
+    return true;
+  }
+
+  function runTextUtil(label, fn, { useSelection = false } = {}) {
+    if (useSelection && transformInputSelection(label, fn)) return;
     if (!input) {
       setToast({ kind: "warn", message: "Input is empty" });
       return;

@@ -1,6 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { formatCode } from "./formatters/index.js";
 import { FORMAT_LABELS, conversionsFrom, convertData } from "./convert/index.js";
+import {
+  DEFAULT_ROOT_NAME,
+  generateTypes,
+  getTypegenTarget,
+} from "./codegen/index.js";
 import CommandPalette from "./components/CommandPalette.jsx";
 import ShareDialog, { PasswordPrompt } from "./components/ShareDialog.jsx";
 import ToolModalHost from "./components/ToolModalHost.jsx";
@@ -68,6 +73,12 @@ export default function App() {
   const [jsonView, setJsonView] = useState("tree"); // 'tree' | 'code' | 'table'
   const [toolModal, setToolModal] = useState(null); // { id, result } | null
   const [outputFullscreen, setOutputFullscreen] = useState(false);
+  // "Generate types" mode of the output pane (JSON input only).
+  const [typegen, setTypegen] = useState({
+    open: false,
+    target: "typescript",
+    rootName: DEFAULT_ROOT_NAME,
+  });
 
   const input = inputs[lang] ?? "";
   const currentLang = getLanguage(lang);
@@ -117,6 +128,45 @@ export default function App() {
     tree: jsonTreeData,
     table: jsonTableData,
   });
+
+  // Generated types follow the input live; the deferred value keeps typing
+  // responsive on large samples.
+  const typegenActive = typegen.open && lang === "json" && viewMode === "split";
+  const typegenInput = useDeferredValue(input);
+  const typegenView = useMemo(() => {
+    if (!typegenActive) return null;
+    const view = { target: typegen.target, rootName: typegen.rootName, code: "", error: null };
+    try {
+      view.code = generateTypes(typegen.target, typegenInput, {
+        rootName: typegen.rootName,
+      });
+    } catch (e) {
+      view.error = {
+        title: "Couldn’t generate types",
+        message: e.message,
+        line: e.line ?? null,
+        column: e.column ?? null,
+        hint: e.hint ?? null,
+      };
+    }
+    return view;
+  }, [typegenActive, typegen.target, typegen.rootName, typegenInput]);
+
+  function openTypegen(target) {
+    if (lang !== "json") {
+      setToast({ kind: "warn", message: "Generate types needs JSON input — switch to JSON first" });
+      return;
+    }
+    setViewMode("split");
+    setTypegen((t) => ({ ...t, open: true, target: target || t.target }));
+    if (target) {
+      setToast({ kind: "ok", message: `Generating ${getTypegenTarget(target).label} from JSON` });
+    }
+  }
+
+  function closeTypegen() {
+    setTypegen((t) => (t.open ? { ...t, open: false } : t));
+  }
 
   function runTextUtil(label, fn) {
     if (!input) {
@@ -181,6 +231,7 @@ export default function App() {
       remember(to, previousTarget);
     }
     remember(lang, input);
+    closeTypegen();
     setLang(to);
     setInputs((prev) => ({ ...prev, [to]: result }));
     setOutput(result);
@@ -197,6 +248,7 @@ export default function App() {
   }
 
   function restoreFromHistory(entry) {
+    closeTypegen();
     setLang(entry.lang);
     setInputs((prev) => ({ ...prev, [entry.lang]: entry.input }));
     setOutput("");
@@ -206,7 +258,10 @@ export default function App() {
 
   async function handleFormat({ silent = false } = {}) {
     if (isFormatting) return;
-    if (!silent) setIsFormatting(true);
+    if (!silent) {
+      setIsFormatting(true);
+      closeTypegen();
+    }
     try {
       const result = await formatCode(lang, input, {
         ...settings,
@@ -245,6 +300,7 @@ export default function App() {
   }, [input, lang, settings.autoFormat, settings.indent, settings.lineWidth, settings.quotes]);
 
   function handleSelectLang(id) {
+    if (id !== lang) closeTypegen();
     setLang(id);
     setInputs((prev) =>
       prev[id] !== undefined ? prev : { ...prev, [id]: SAMPLES[id] || "" }
@@ -304,13 +360,17 @@ export default function App() {
       },
       setViewMode,
       toggleFullscreen: () => setOutputFullscreen((v) => !v),
-      copyOutput: () => output && navigator.clipboard.writeText(output),
+      copyOutput: () => {
+        const text = typegenView ? typegenView.code : output;
+        if (text) navigator.clipboard.writeText(text);
+      },
       openSettings: () => setSettingsOpen(true),
       updateSettings: setSettings,
       selectLang: handleSelectLang,
       runTextUtil,
       openToolModal,
       convert: handleConvert,
+      generateTypes: openTypegen,
     },
   });
 
@@ -482,6 +542,12 @@ export default function App() {
                 conversions={conversionsFrom(lang)}
                 onConvert={handleConvert}
                 convertDisabled={!input.trim()}
+                typegen={typegenView}
+                typegenAvailable={lang === "json"}
+                onTypegenToggle={() =>
+                  typegenActive ? closeTypegen() : openTypegen()
+                }
+                onTypegenChange={(patch) => setTypegen((t) => ({ ...t, ...patch }))}
               />
             </>
           )}

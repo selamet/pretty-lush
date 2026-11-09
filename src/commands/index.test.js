@@ -4,6 +4,7 @@ import { TEXT_TOOLS, jsonIndentFor, pythonIndentFor } from "./text-tools.js";
 import { LANGUAGES } from "../languages/registry.js";
 import { THEMES } from "../editor-themes.js";
 import { CONVERSIONS } from "../convert/index.js";
+import { TYPEGEN_TARGETS } from "../codegen/index.js";
 
 function makeActions() {
   return {
@@ -19,6 +20,7 @@ function makeActions() {
     runTextUtil: vi.fn(),
     openToolModal: vi.fn(),
     convert: vi.fn(),
+    generateTypes: vi.fn(),
   };
 }
 
@@ -43,7 +45,7 @@ describe("buildCommands", () => {
     for (const c of commands) expect(typeof c.run).toBe("function");
   });
 
-  it("keeps the palette order: core, languages, themes, tools, converters", () => {
+  it("keeps the palette order: core, languages, themes, tools, converters, typegen", () => {
     const { commands } = build();
     const core = ["format", "share", "clear", "diff", "compare", "fullscreen", "copy-output", "settings", "theme-flip", "lint-toggle"];
     expect(commands.slice(0, core.length).map((c) => c.id)).toEqual(core);
@@ -53,6 +55,7 @@ describe("buildCommands", () => {
       ...THEMES.map((t) => `theme-${t.id}`),
       ...TEXT_TOOLS.map((t) => t.id),
       ...CONVERSIONS.map((c) => c.id),
+      ...TYPEGEN_TARGETS.map((t) => `typegen-${t.id}`),
     ]);
   });
 
@@ -183,5 +186,15 @@ describe("indent helpers", () => {
     expect(actions.convert).toHaveBeenCalledWith(
       expect.objectContaining({ from: "csv", to: "json" })
     );
+  });
+
+  it("adds a Generate types command per target that calls actions.generateTypes", () => {
+    const { byId, actions } = build();
+    expect(byId["typegen-typescript"].label).toBe("Generate TypeScript types from JSON");
+    expect(byId["typegen-zod"].label).toBe("Generate Zod schema from JSON");
+    expect(byId["typegen-pydantic"].label).toBe("Generate Pydantic models from JSON");
+    for (const t of TYPEGEN_TARGETS) expect(byId[`typegen-${t.id}`].group).toBe("Generate types");
+    byId["typegen-zod"].run();
+    expect(actions.generateTypes).toHaveBeenCalledWith("zod");
   });
 });

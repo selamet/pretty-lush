@@ -33,6 +33,7 @@ Powered by real formatters compiled to WebAssembly or pure JavaScript:
 **JSON power tools**
 
 - **JSONPath filter** — type an expression (`$.items[*].id`, `$..name`) in the JSON pane and the formatted output is the matched values
+- **Tree view** — collapsible tree of the formatted JSON with a search box (keys and values, case-insensitive) that highlights matches, expands their parents and steps through them with Enter / Shift+Enter (or ⌘K → "Search JSON tree"). Every node has **Copy path** (valid JSONPath: `$.a.b[0]`, `$['weird key']` for keys that aren't identifiers), **Copy value** and **Filter by this path**, which sets the JSONPath filter and applies it — on hover, via the ⋮ button on touch, right-click or Shift+F10. Paths of a filtered output point back into the original input. Arrow keys navigate, expand and collapse; rows are virtualized so 5k+ node documents stay responsive
 - **Table view** — when output is an array of objects, toggle between Code and a sticky-header table; **CSV** downloads the table as `table.csv`
 - **Minify** — the toolbar button next to Format (or ⌘K → "Minify JSON") puts the JSON on one line, keeping key order and number literals exactly as written; it's a one-shot output transform, so Format-as-you-type won't re-indent it until you edit the input
 - **Escape / Unescape** — ⌘K → "Escape to JSON string" turns the whole input into one JSON string literal (for code or env vars); "Unescape JSON string" decodes a literal (quotes optional), unwraps double / triple-encoded JSON from logs, and when the result is JSON pretty-prints it and switches to JSON (previous input saved in Recent)
@@ -234,7 +235,7 @@ pretty-lush/
 │   ├── convert/                     # data converters (JSON ↔ YAML ↔ TOML ↔ CSV, RFC 4180 CSV)
 │   ├── codegen/                     # JSON → TypeScript / Zod / Pydantic (schema inference + emitters)
 │   ├── schema/                      # JSON Schema validation (lazy Ajv), JSON pointer → source offset, schema generation
-│   ├── output/                      # pure output helpers (JSON tree / table, filenames)
+│   ├── output/                      # pure output helpers (JSON tree model + search, JSONPath build / parse, table, filenames)
 │   ├── formatters/                  # one module per backend; index.js dispatches
 │   ├── languages/                   # registry, detection, sidebar groups, CodeMirror modes
 │   ├── share/                       # AES-GCM crypto + URL-fragment encode / decode

@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { formatCode } from "./formatters/index.js";
 import { FORMAT_LABELS, conversionsFrom, convertData } from "./convert/index.js";
 import {
@@ -40,6 +40,7 @@ import {
   toJsonTree,
   resolveOutputView,
 } from "./output/json-views.js";
+import { jsonPathResultBases } from "./output/json-filter.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useHistory } from "./hooks/useHistory.js";
 import { useLayout } from "./hooks/useLayout.js";
@@ -75,6 +76,11 @@ export default function App() {
   const editorRef = useRef(null);
   const [jsonPath, setJsonPath] = useState("");
   const [jsonView, setJsonView] = useState("tree"); // 'tree' | 'code' | 'table'
+  // JSONPath filter behind the current output: { output, expression, bases },
+  // so the tree can map nodes of filtered output back to input paths.
+  const [outputFilter, setOutputFilter] = useState(null);
+  const [treeSearchRequested, setTreeSearchRequested] = useState(false);
+  const clearTreeSearchRequest = useCallback(() => setTreeSearchRequested(false), []);
   const [toolModal, setToolModal] = useState(null); // { id, result } | null
   const [outputFullscreen, setOutputFullscreen] = useState(false);
   // "Generate types" mode of the output pane (JSON input only).
@@ -346,26 +352,41 @@ export default function App() {
     setSuggestion(null);
   }
 
-  async function handleFormat({ silent = false } = {}) {
-    if (isFormatting) return;
+  // `jsonPathOverride` formats with that filter instead of the (possibly not
+  // yet re-rendered) `jsonPath` state. Resolves to true on success.
+  async function handleFormat({ silent = false, jsonPath: jsonPathOverride } = {}) {
+    if (isFormatting) return false;
     if (!silent) {
       setIsFormatting(true);
       closeTypegen();
     }
+    const filterExpr = lang === "json" ? (jsonPathOverride ?? jsonPath).trim() : "";
     try {
       const result = await formatCode(lang, input, {
         ...settings,
-        jsonPath: lang === "json" ? jsonPath : null,
+        jsonPath: filterExpr || null,
       });
+      let filterInfo = null;
+      if (filterExpr) {
+        let bases = [];
+        try {
+          bases = await jsonPathResultBases(JSON.parse(input), filterExpr);
+        } catch {
+          // Paths in the tree then fall back to the filtered output.
+        }
+        filterInfo = { output: result, expression: filterExpr, bases };
+      }
+      setOutputFilter(filterInfo);
       setOutput(result);
       setError(null);
       if (!silent && input.length <= MAX_HISTORY_ITEM) {
         pushHistory(createHistoryEntry({ lang, input, output: result }));
       }
+      return true;
     } catch (e) {
       if (silent) {
         // suppress error during auto-format typing — keep last good output
-        return;
+        return false;
       }
       setError({
         message: e.message,
@@ -374,9 +395,29 @@ export default function App() {
         hint: e.hint ?? null,
       });
       setOutput("");
+      return false;
     } finally {
       if (!silent) setIsFormatting(false);
     }
+  }
+
+  // "Filter by this path" from the JSON tree: set the JSONPath filter and
+  // apply it right away.
+  async function filterByJsonPath(path) {
+    setJsonPath(path);
+    if (await handleFormat({ jsonPath: path })) {
+      setToast({ kind: "ok", message: `Filtered by ${path}` });
+    }
+  }
+
+  function searchJsonTree() {
+    if (lang !== "json" || !jsonTreeData || viewMode !== "split") {
+      setToast({ kind: "warn", message: "Format some JSON first to search its tree" });
+      return;
+    }
+    closeTypegen();
+    setJsonView("tree");
+    setTreeSearchRequested(true);
   }
 
   useEffect(() => {
@@ -464,6 +505,7 @@ export default function App() {
       generateTypes: openTypegen,
       toggleSchema,
       generateSchema: generateSchemaFromInput,
+      searchTree: searchJsonTree,
     },
   });
 
@@ -638,10 +680,13 @@ export default function App() {
                 jsonTreeData={jsonTreeData}
                 jsonTableData={jsonTableData}
                 onJsonViewChange={setJsonView}
-                onUseJsonPath={(p) => {
-                  setJsonPath(p);
-                  setToast({ kind: "ok", message: "Filter set — press ⌘⏎ to apply" });
-                }}
+                onUseJsonPath={filterByJsonPath}
+                jsonTreeFilter={
+                  outputFilter && outputFilter.output === output ? outputFilter : null
+                }
+                onNotify={setToast}
+                treeSearchRequested={treeSearchRequested}
+                onTreeSearchFocused={clearTreeSearchRequest}
                 fullscreen={outputFullscreen}
                 onToggleFullscreen={() => setOutputFullscreen((v) => !v)}
                 conversions={conversionsFrom(lang)}

@@ -3381,3 +3381,180 @@ button {
     display: none;
   }
 }
+
+/* ── JSON Schema validation: input pane toggle + schema panel ── */
+.schema-btn.is-on,
+.schema-btn.is-on:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+/* The panel reuses the Ruff problems list look (.problems*). */
+/* On short panes the schema editor shrinks first, the input editor keeps a
+   usable minimum height. */
+.schema-panel {
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pane:has(> .schema-panel) > .editor-host {
+  min-height: clamp(64px, 14vh, 140px);
+}
+
+.schema-head {
+  flex: none;
+}
+
+.schema-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 6px;
+}
+
+.schema-head .schema-toggle {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.schema-action {
+  appearance: none;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-family: var(--sans);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.schema-action:hover {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.schema-action:focus-visible,
+.schema-close:focus-visible,
+.schema-message-text.as-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.problems-count.is-valid {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.problems-summary.is-valid {
+  color: var(--accent-text);
+}
+
+.schema-panel .schema-editor {
+  flex: 0 1 auto;
+  min-height: 56px;
+  height: clamp(110px, 28vh, 260px);
+  border-top: 1px solid var(--line);
+}
+
+.schema-panel .schema-editor[hidden] {
+  display: none;
+}
+
+.schema-message {
+  flex: none;
+  max-height: 76px;
+  overflow: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  padding: 7px 12px 7px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.schema-message.is-error {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.schema-message.is-valid {
+  align-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 500;
+}
+
+.schema-message-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.schema-message-text.as-link {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.schema-message-hint {
+  color: var(--muted);
+}
+
+.schema-panel .schema-errors {
+  flex: 0 1 auto;
+  min-height: 30px;
+}
+
+.schema-errors .schema-error {
+  grid-template-columns: fit-content(42%) minmax(0, 1fr) auto;
+}
+
+.schema-error-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--accent-text);
+}
+
+@media (max-width: 720px) {
+  /* Give the input pane more of the stacked layout while a schema is open. */
+  .editor:has(.schema-panel) {
+    grid-template-rows: minmax(0, 2fr) minmax(0, 1fr);
+  }
+
+  .schema-panel .schema-editor {
+    height: clamp(80px, 18vh, 150px);
+  }
+
+  .schema-action-text {
+    display: none;
+  }
+
+  .schema-action {
+    padding: 0 7px;
+  }
+}

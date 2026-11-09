@@ -50,6 +50,9 @@ import { useLanguageSuggestion } from "./hooks/useLanguageSuggestion.js";
 import { useFileDrop } from "./hooks/useFileDrop.js";
 import { useWindowKeydown } from "./hooks/useWindowKeydown.js";
 import { useRuffLint } from "./hooks/useRuffLint.js";
+import { useSchemaState, useSchemaValidation } from "./hooks/useSchemaValidation.js";
+import { parseJsonText } from "./schema/validate.js";
+import { generateSchemaText } from "./schema/generate.js";
 
 // App shell: owns the formatting state (input → output / error) and wires
 // hooks (persisted state, sharing, detection) to the layout components.
@@ -87,6 +90,18 @@ export default function App() {
     enabled: settings.lint && lang === "python" && viewMode === "split",
     input,
     settings,
+  });
+
+  // JSON Schema validation of the input (Schema panel in the input pane).
+  // Independent of the output pane: it stays on alongside Types / Tree /
+  // Table and across Format; it is only hidden (not turned off) while the
+  // input isn't JSON (e.g. after Convert → YAML) or outside split view.
+  const [schemaState, setSchemaState] = useSchemaState();
+  const schemaActive = schemaState.open && lang === "json" && viewMode === "split";
+  const schemaValidation = useSchemaValidation({
+    enabled: schemaActive,
+    input,
+    schemaText: schemaState.text,
   });
 
   function setInput(text) {
@@ -166,6 +181,43 @@ export default function App() {
 
   function closeTypegen() {
     setTypegen((t) => (t.open ? { ...t, open: false } : t));
+  }
+
+  function requireJson(what) {
+    if (lang === "json") return true;
+    setToast({ kind: "warn", message: `${what} needs JSON input — switch to JSON first` });
+    return false;
+  }
+
+  function toggleSchema() {
+    if (schemaActive) {
+      setSchemaState((s) => ({ ...s, open: false }));
+      return;
+    }
+    if (!requireJson("Schema validation")) return;
+    setViewMode("split");
+    setSchemaState((s) => ({ ...s, open: true }));
+  }
+
+  // Replaces the schema with one inferred from the JSON input (same merge
+  // rules as Generate types) and turns validation on.
+  function generateSchemaFromInput() {
+    if (!requireJson("Generate schema")) return;
+    if (!input.trim()) {
+      setToast({ kind: "warn", message: "Input is empty" });
+      return;
+    }
+    let value;
+    try {
+      value = parseJsonText(input, "Input");
+    } catch (e) {
+      setToast({ kind: "warn", message: e.message });
+      return;
+    }
+    const text = generateSchemaText(value, settings.indent);
+    setViewMode("split");
+    setSchemaState({ open: true, text });
+    setToast({ kind: "ok", message: "Schema generated from JSON" });
   }
 
   function runTextUtil(label, fn) {
@@ -348,6 +400,7 @@ export default function App() {
   const commands = buildCommands({
     viewMode,
     outputFullscreen,
+    schemaOn: schemaActive,
     themeMode: themeMeta.mode,
     settings,
     actions: {
@@ -371,6 +424,8 @@ export default function App() {
       openToolModal,
       convert: handleConvert,
       generateTypes: openTypegen,
+      toggleSchema,
+      generateSchema: generateSchemaFromInput,
     },
   });
 
@@ -501,6 +556,17 @@ export default function App() {
                 onJsonPathChange={setJsonPath}
                 onFormat={() => handleFormat()}
                 lint={lint}
+                schema={
+                  schemaActive
+                    ? {
+                        text: schemaState.text,
+                        onChange: (text) => setSchemaState((s) => ({ ...s, text })),
+                        validation: schemaValidation,
+                        onGenerate: generateSchemaFromInput,
+                      }
+                    : null
+                }
+                onSchemaToggle={toggleSchema}
               />
 
               <Resizer
